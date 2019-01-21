@@ -10,11 +10,18 @@ import pathlib
 import http.server
 import socketserver
 import boto3
+from distutils.dir_util import copy_tree
+
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = '1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb'
 JAM_SONGS_SPREADSHEET_ID = '1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag'
 S3_BUCKET = 'skrul.com'
+
+CONTENT_TYPES = {
+    'html' : 'text/html',
+    'css' : 'text/css'
+}
 
 def get_songs_from_drive(service):
     page_token = None
@@ -78,9 +85,12 @@ def generate(songs):
     if not os.path.exists(jam_dir):
         os.makedirs(jam_dir)
 
-    def render(name, songs):
+
+    copy_tree(pdir('css'), os.path.join(jam_dir, 'css'))
+
+    def render(name, _songs):
         template = env.get_template(name)
-        template.stream(songs=songs).dump(os.path.join(jam_dir, name))
+        template.stream(songs=_songs).dump(os.path.join(jam_dir, name), encoding='utf-16')
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
     render('titles.html', songs_by_title)
@@ -93,17 +103,25 @@ def publish(aws_profile):
         for filename in files:
             local_path = os.path.join(root, filename)
             remote_path = os.path.relpath(local_path, dist_dir)
+            content_type = CONTENT_TYPES[pathlib.Path(remote_path).suffix[1:]]
             print(f"Uploading {local_path} to {remote_path}")
             s3.upload_file(
                 local_path,
                 S3_BUCKET,
                 remote_path,
-                ExtraArgs={ 'ContentType': 'text/html' }
+                ExtraArgs={
+                    'ContentType': content_type + '; charset=utf-8',
+                    'StorageClass': 'REDUCED_REDUNDANCY'
+                }
             )
 
 def serve():
     os.chdir(pdir('dist'))
     Handler = http.server.SimpleHTTPRequestHandler
+    m = Handler.extensions_map
+    m[''] = 'text/plain'
+    m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()]))
+
     with socketserver.TCPServer(('', PORT), Handler) as httpd:
         print('serving at port', PORT)
         print('http://localhost:8000/jam/title.html')
