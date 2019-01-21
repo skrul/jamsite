@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>By Title</title>
+</head>
+<body>
+    <ul>
+    {% for song in songs %}
+    <li>{{ song.title }} - {{ song.artist }} ({{ song.year }}) <a href="{{ song.link }}">link</a></li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
