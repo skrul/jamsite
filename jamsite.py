@@ -11,7 +11,7 @@ import http.server
 import socketserver
 import boto3
 from distutils.dir_util import copy_tree
-
+import pickle
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = '1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb'
@@ -90,7 +90,7 @@ def generate(songs):
 
     def render(name, _songs):
         template = env.get_template(name)
-        template.stream(songs=_songs).dump(os.path.join(jam_dir, name), encoding='utf-16')
+        template.stream(songs=_songs).dump(os.path.join(jam_dir, name)) #, encoding='utf-16')
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
     render('titles.html', songs_by_title)
@@ -115,6 +115,20 @@ def publish(aws_profile):
                 }
             )
 
+def get_songs(cache):
+    cache_file = pdir('songs.pickle')
+    if cache:
+         if os.path.exists(cache_file):
+             with open(cache_file, 'rb') as songs_pickle:
+                 return pickle.load(songs_pickle)
+    sheets_service = google_api.auth('sheets', 'v4')
+    songs_by_row = read_songs_spreadsheet(sheets_service)
+    songs = list(songs_by_row.values())
+    if cache:
+        with open(cache_file, 'wb') as songs_pickle:
+            pickle.dump(songs, songs_pickle)
+    return songs
+
 def serve():
     os.chdir(pdir('dist'))
     Handler = http.server.SimpleHTTPRequestHandler
@@ -138,6 +152,7 @@ if __name__ == '__main__':
     parser.add_argument('--serve', action='store_true')
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--aws-profile')
+    parser.add_argument('--cached', action='store_true')
     args = parser.parse_args()
     if args.sync:
         drive_service = google_api.auth('drive', 'v3')
@@ -147,9 +162,8 @@ if __name__ == '__main__':
         existing_songs_by_row = read_songs_spreadsheet(sheets_service)
         sync_to_spreadsheet(sheets_service, drive_songs, existing_songs_by_row)
     if args.generate:
-        sheets_service = google_api.auth('sheets', 'v4')
-        songs_by_row = read_songs_spreadsheet(sheets_service)
-        generate(songs_by_row.values())
+        songs = get_songs(args.cached)
+        generate(songs)
     if args.serve:
         serve()
     if args.publish:

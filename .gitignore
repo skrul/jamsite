@@ -1,6 +1,7 @@
 __pycache__/
 dist/
 token.pickle
+songs.pickle
 credentials.json
 *.pyc
 
