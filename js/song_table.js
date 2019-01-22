@@ -15,7 +15,6 @@
         function(e) {
           var tr = that._getTr(e);
           tr.classList.add('selected');
-          window.location = tr.getAttribute('data-link');
         },
         false
       );
