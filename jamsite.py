@@ -20,7 +20,8 @@ S3_BUCKET = 'skrul.com'
 
 CONTENT_TYPES = {
     'html' : 'text/html',
-    'css' : 'text/css'
+    'css' : 'text/css',
+    'js' : 'application/javascript'
 }
 
 def get_songs_from_drive(service):
@@ -85,15 +86,15 @@ def generate(songs):
     if not os.path.exists(jam_dir):
         os.makedirs(jam_dir)
 
-
     copy_tree(pdir('css'), os.path.join(jam_dir, 'css'))
+    copy_tree(pdir('js'), os.path.join(jam_dir, 'js'))
 
     def render(name, _songs):
         template = env.get_template(name)
-        template.stream(songs=_songs).dump(os.path.join(jam_dir, name)) #, encoding='utf-16')
+        template.stream(songs=_songs).dump(os.path.join(jam_dir, name))
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
-    render('titles.html', songs_by_title)
+    render('index.html', songs_by_title)
 
 def publish(aws_profile):
     session = boto3.Session(profile_name=aws_profile)

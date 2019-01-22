@@ -1,19 +1,50 @@
-a {
-    color: #000000;
-    text-decoration: none;
+a, a:link, a:hover, a:active, a:visited {
+  color: #000000;
+  text-decoration: none;
 }
 
-.rowlink::before {
-  content: "";
+tbody tr:nth-child(odd) {
+  background-color: #eee;
+}
+
+.navbar {
   display: block;
-  position: absolute;
-  left: 0;
   width: 100%;
-  height: 2em;
+  height: 6.5rem;
+  background: #fff;
+  z-index: 99;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  position: fixed;
+  top: 0;
+}
+.navbar > .container {
+    width: 100%;
+}
+.navbar-list {
+  list-style: none;
+  margin-bottom: 0;
+}
+.navbar-item {
+  position: relative;
+  float: left;
+  margin-bottom: 0;
+}
+.navbar-link {
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2rem;
+  margin-right: 30px;
+  text-decoration: none;
+  line-height: 6.5rem;
+  color: #222;
 }
 
-/*
-tr {
-   height: 2em;
+.navbar-link.selected {
+  border-bottom: 2px solid currentColor;
 }
-*/
+
+#songs {
+    margin-top: 6.5rem;
+}
