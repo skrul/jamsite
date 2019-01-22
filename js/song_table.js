@@ -10,6 +10,11 @@
       that.nav = nav;
       this.currentMode = null;
 
+      table.addEventListener(
+        'click',
+        function(e) { window.location = e.target.parentElement.getAttribute('data-link') },
+        false
+      );
       this._getNavItem('title').addEventListener(
         'click',
         function(e) { that.sort('title'); },
@@ -40,10 +45,13 @@
       var rowData = [];
       for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
         var row = this.table.tBodies[0].rows[i];
+        var get_cell_value = function(idx) {
+          return row.cells[idx].getAttribute('data-sort') || row.cells[idx].textContent;
+        }
         var cellsValues = [
-          row.cells[0].textContent,
-          row.cells[1].textContent,
-          row.cells[2].textContent
+          get_cell_value(0),
+          get_cell_value(1),
+          get_cell_value(2)
         ];
         rowData.push({
           tr: row,
@@ -66,6 +74,7 @@
       }
       this._getNavItem(type).classList.add('selected');
       this.currentMode = type;
+      window.scrollTo(0, 0);
     },
 
     _getNavItem: function(name) {

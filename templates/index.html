@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Jam Songs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/skeleton.css">
+  <link rel="stylesheet" href="css/custom.css" type="text/css">
+  <script src="js/song_table.js"></script>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar">
+      <div class="container">
+        <ul class="navbar-list" id="nav">
+          <li class="navbar-item"><a class="navbar-link title">Title</a></li>
+          <li class="navbar-item"><a class="navbar-link artist">Artist</a></li>
+          <li class="navbar-item"><a class="navbar-link year">Year</a></li>
+          <li class="navbar-item"><a class="navbar-link search">&#x1F50D;</a></li>
+        </ul>
+      </div>
+    </nav>
+    <table id="songs" class="u-full-width">
+      <tbody>
+      {% for song in songs %}
+      <tr data-link="{{ song.link }}">
+        <td data-sort="{{ song.title_sort }}">{{ song.title }}</td>
+        <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
+        <td>{{ song.year }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <ul>
+      <li>Song count: {{ songs|count }}</li>
+      <li><a href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing">Source data</a></li>
+      <li><a href="https://github.com/skrul/jamsite">Site generator source</a></li>
+    </ul>
+  </div>
+  <script src="js/site.js"></script>
+<script>
+  var st = new SongTable(document.getElementById("songs"), document.getElementById("nav"));
+  st.sort('title');
+</script>
+</body>
+</html>

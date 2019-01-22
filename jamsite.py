@@ -38,7 +38,9 @@ def get_songs_from_drive(service):
                 song = Song(
                     'gd:' + file.get('id'),
                     match.group(2),
+                    None,
                     match.group(1),
+                    None,
                     match.group(3),
                     file.get('webContentLink'))
                 songs.append(song)
@@ -58,7 +60,7 @@ def read_songs_spreadsheet(service):
     for row, value in enumerate(values):
         if row == 0:
             continue
-        song = Song(value[0], value[1], value[2], value[3], value[4])
+        song = Song(value[0], value[1], value[2], value[3], value[4], value[5], value[6])
         songs_by_row[row] = song
     return songs_by_row
 
