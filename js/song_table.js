@@ -11,10 +11,30 @@
       this.currentMode = null;
 
       table.addEventListener(
-        'click',
-        function(e) { window.location = e.target.parentElement.getAttribute('data-link') },
+        'touchstart',
+        function(e) {
+          var tr = that._getTr(e);
+          tr.classList.add('selected');
+          window.location = tr.getAttribute('data-link');
+        },
         false
       );
+      table.addEventListener(
+        'touchend',
+        function(e) {
+          that.clearRowSelection();
+        },
+        false
+      );
+      table.addEventListener(
+        'click',
+        function(e) {
+          var tr = that._getTr(e);
+          window.location = tr.getAttribute('data-link');
+        },
+        false
+      );
+
       this._getNavItem('title').addEventListener(
         'click',
         function(e) { that.sort('title'); },
@@ -30,6 +50,13 @@
         function(e) { that.sort('year'); },
         false
       );
+    },
+
+    clearRowSelection: function() {
+      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
+        var row = this.table.tBodies[0].rows[i];
+        row.classList.remove('selected');
+      }
     },
 
     sort: function(type) {
@@ -79,6 +106,10 @@
 
     _getNavItem: function(name) {
       return this.nav.getElementsByClassName(name)[0];
+    },
+
+    _getTr: function(e) {
+      return e.target.parentElement;
     }
   }
 

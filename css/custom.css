@@ -19,6 +19,10 @@ tr td:last-child {
   padding-right: 4px;
 }
 
+tr.selected {
+  background-color: #ff5a5f !important;
+}
+
 .navbar {
   display: block;
   width: 100%;
