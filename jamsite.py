@@ -71,7 +71,7 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
         if song.uuid not in existing_songs_uuids:
             to_append.append(song)
 
-    values = [[s.uuid, s.artist, s.title, s.year, s.link] for s in to_append]
+    values = [[s.uuid, s.artist, None, s.title, None, s.year, s.link] for s in to_append]
     result = service.spreadsheets().values().append(
         spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
         valueInputOption='RAW',

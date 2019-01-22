@@ -7,6 +7,13 @@ tbody tr:nth-child(odd) {
   background-color: #eee;
 }
 
+tr td:first-child {
+  padding-left: 4px;
+}
+tr td:last-child {
+  padding-right: 4px;
+}
+
 .navbar {
   display: block;
   width: 100%;
