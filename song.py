@@ -10,7 +10,8 @@ class Song(object):
         'view_link': 'H'
     }
 
-    def __init__(self, uuid, artist, artist_sort, title, title_sort, year, download_link, view_link):
+    def __init__(self, uuid, artist, artist_sort, title, title_sort, year,
+                 download_link, view_link):
         self.uuid = uuid
         self.artist = artist
         self.artist_sort = artist_sort
@@ -32,4 +33,3 @@ class Song(object):
             'view_link: ' + self.view_link,
         ]
         return ', '.join(a)
-

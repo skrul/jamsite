@@ -21,31 +21,28 @@ JAM_SONGS_SPREADSHEET_ID = '1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag'
 S3_BUCKET = 'skrul.com'
 
 CONTENT_TYPES = {
-    'html' : 'text/html',
-    'css' : 'text/css',
-    'js' : 'application/javascript'
+    'html': 'text/html',
+    'css': 'text/css',
+    'js': 'application/javascript'
 }
+
 
 def get_songs_from_drive(service):
     page_token = None
-    songs= []
+    songs = []
     while True:
         response = service.files().list(
             q=f"'{JAM_SONGS_FOLDER_ID}' in parents and trashed = false",
-            fields='nextPageToken, files(id, name, webContentLink, webViewLink)',
+            fields=
+            'nextPageToken, files(id, name, webContentLink, webViewLink)',
             pageToken=page_token).execute()
         for file in response.get('files', []):
             match = re.match(r'(.*) [-‐] (.*) \((.*)\)\.pdf', file.get('name'))
             if match is not None:
-                song = Song(
-                    'gd:' + file.get('id'),
-                    match.group(2),
-                    None,
-                    match.group(1),
-                    None,
-                    match.group(3),
-                    file.get('webContentLink'),
-                    file.get('webViewLink'))
+                song = Song('gd:' + file.get('id'), match.group(2), None,
+                            match.group(1), None, match.group(3),
+                            file.get('webContentLink'),
+                            file.get('webViewLink'))
                 songs.append(song)
             else:
                 print('Skipping ' + file.get('name'))
@@ -54,10 +51,10 @@ def get_songs_from_drive(service):
             break
     return songs
 
+
 def read_songs_spreadsheet(service):
     result = service.spreadsheets().values().get(
-        spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
-        range='songs').execute()
+        spreadsheetId=JAM_SONGS_SPREADSHEET_ID, range='songs').execute()
     values = result.get('values')
     songs_by_row = {}
     for row, value in enumerate(values):
@@ -70,8 +67,12 @@ def read_songs_spreadsheet(service):
         songs_by_row[row] = song
     return songs_by_row
 
+
 def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
-    existing_songs_uuids = {existing_songs_by_row[r].uuid:(r,existing_songs_by_row[r]) for r in existing_songs_by_row}
+    existing_songs_uuids = {
+        existing_songs_by_row[r].uuid: (r, existing_songs_by_row[r])
+        for r in existing_songs_by_row
+    }
     to_append = []
     to_update = []
     for song in drive_songs:
@@ -81,16 +82,22 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
             row, existing_song = existing_songs_uuids[song.uuid]
             if existing_song.view_link == '':
                 to_update.append({
-                    'range': Song.SPREADSHEET_COLUMNS['view_link'] + str(row + 1),
+                    'range':
+                    Song.SPREADSHEET_COLUMNS['view_link'] + str(row + 1),
                     'values': [[song.view_link]]
                 })
 
-    values = [[s.uuid, s.artist, None, s.title, None, s.year, s.download_link, s.view_link] for s in to_append]
+    values = [[
+        s.uuid, s.artist, None, s.title, None, s.year, s.download_link,
+        s.view_link
+    ] for s in to_append]
     result = service.spreadsheets().values().append(
         spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
         valueInputOption='RAW',
         range='songs',
-        body={ 'values': values }).execute()
+        body={
+            'values': values
+        }).execute()
 
     result = service.spreadsheets().values().batchUpdate(
         spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
@@ -99,11 +106,11 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
             'data': to_update
         }).execute()
 
+
 def generate(songs):
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(pdir('templates')),
-        autoescape=jinja2.select_autoescape(['html'])
-    )
+        autoescape=jinja2.select_autoescape(['html']))
 
     jam_dir = pdir('dist/jam')
     if not os.path.exists(jam_dir):
@@ -121,9 +128,12 @@ def generate(songs):
 
     def render(name):
         template = env.get_template(name)
-        template.stream(songs=songs_by_title, static_file_hashes=static_file_hashes).dump(os.path.join(jam_dir, name))
+        template.stream(
+            songs=songs_by_title, static_file_hashes=static_file_hashes).dump(
+                os.path.join(jam_dir, name))
 
     render('index.html')
+
 
 def publish(aws_profile):
     session = boto3.Session(profile_name=aws_profile)
@@ -143,15 +153,15 @@ def publish(aws_profile):
                     'ContentType': content_type + '; charset=utf-8',
                     'StorageClass': 'REDUCED_REDUNDANCY',
                     'CacheControl': 'no-cache'
-                }
-            )
+                })
+
 
 def get_songs(cache):
     cache_file = pdir('songs.pickle')
     if cache:
-         if os.path.exists(cache_file):
-             with open(cache_file, 'rb') as songs_pickle:
-                 return pickle.load(songs_pickle)
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as songs_pickle:
+                return pickle.load(songs_pickle)
     sheets_service = google_api.auth('sheets', 'v4')
     songs_by_row = read_songs_spreadsheet(sheets_service)
     songs = list(songs_by_row.values())
@@ -159,6 +169,7 @@ def get_songs(cache):
         with open(cache_file, 'wb') as songs_pickle:
             pickle.dump(songs, songs_pickle)
     return songs
+
 
 def serve():
     os.chdir(pdir('dist'))
@@ -172,8 +183,10 @@ def serve():
         print('http://localhost:8000/jam/')
         httpd.serve_forever()
 
+
 def pdir(name):
     return os.path.normpath(os.path.join(os.getcwd(), name))
+
 
 def get_hash(f_path):
     h = hashlib.new('md5')
@@ -182,6 +195,7 @@ def get_hash(f_path):
     h.update(data)
     digest = h.hexdigest()
     return digest
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
