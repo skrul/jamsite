@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <title>Jam Songs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="css/normalize.css">
-  <link rel="stylesheet" href="css/skeleton.css">
-  <link rel="stylesheet" href="css/custom.css" type="text/css">
-  <script src="js/song_table.js"></script>
+  <link rel="stylesheet" href="css/normalize.css?v={{ static_file_hashes['css/normalize.css'] }}">
+  <link rel="stylesheet" href="css/skeleton.css?v={{ static_file_hashes['css/skeleton.css'] }}">
+  <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
+  <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
 </head>
 <body>
   <div class="container">
@@ -26,7 +26,7 @@
     <table id="songs" class="u-full-width">
       <tbody>
       {% for song in songs %}
-      <tr data-link="{{ song.link }}">
+      <tr data-download-link="{{ song.download_link }}" data-view-link="{{ song.view_link }}">
         <td data-sort="{{ song.title_sort }}">{{ song.title }}</td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>
@@ -43,7 +43,7 @@
       </div>
     </nav>
   </div>
-  <script src="js/site.js"></script>
+  <script src="js/site.js?v={{ static_file_hashes['js/site.js'] }}"></script>
 <script>
   var st = new SongTable(document.getElementById("songs"), document.getElementById("nav"));
   st.sort('title');

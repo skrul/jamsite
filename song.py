@@ -1,12 +1,24 @@
 class Song(object):
-    def __init__(self, uuid, artist, artist_sort, title, title_sort, year, link):
+    SPREADSHEET_COLUMNS = {
+        'uuid': 'A',
+        'artist': 'B',
+        'artist_sort': 'C',
+        'title': 'D',
+        'title_sort': 'E',
+        'year': 'F',
+        'download_link': 'G',
+        'view_link': 'H'
+    }
+
+    def __init__(self, uuid, artist, artist_sort, title, title_sort, year, download_link, view_link):
         self.uuid = uuid
         self.artist = artist
         self.artist_sort = artist_sort
         self.title = title
         self.title_sort = title_sort
         self.year = year
-        self.link = link
+        self.download_link = download_link
+        self.view_link = view_link
 
     def __repr__(self):
         a = [
@@ -16,6 +28,8 @@ class Song(object):
             'title: ' + self.title,
             'title_sort: ' + self.title_sort,
             'year: ' + self.year,
-            'link: ' + self.link
+            'download_link: ' + self.download_link,
+            'view_link: ' + self.view_link,
         ]
         return ', '.join(a)
+

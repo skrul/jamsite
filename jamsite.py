@@ -12,6 +12,8 @@ import socketserver
 import boto3
 from distutils.dir_util import copy_tree
 import pickle
+from collections import defaultdict
+import hashlib
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = '1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb'
@@ -30,7 +32,7 @@ def get_songs_from_drive(service):
     while True:
         response = service.files().list(
             q=f"'{JAM_SONGS_FOLDER_ID}' in parents and trashed = false",
-            fields='nextPageToken, files(id, name, webContentLink)',
+            fields='nextPageToken, files(id, name, webContentLink, webViewLink)',
             pageToken=page_token).execute()
         for file in response.get('files', []):
             match = re.match(r'(.*) [-‐] (.*) \((.*)\)\.pdf', file.get('name'))
@@ -42,7 +44,8 @@ def get_songs_from_drive(service):
                     match.group(1),
                     None,
                     match.group(3),
-                    file.get('webContentLink'))
+                    file.get('webContentLink'),
+                    file.get('webViewLink'))
                 songs.append(song)
             else:
                 print('Skipping ' + file.get('name'))
@@ -60,23 +63,41 @@ def read_songs_spreadsheet(service):
     for row, value in enumerate(values):
         if row == 0:
             continue
-        song = Song(value[0], value[1], value[2], value[3], value[4], value[5], value[6])
+        d = defaultdict(lambda: '')
+        for i, v in enumerate(value):
+            d[i] = v
+        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7])
         songs_by_row[row] = song
     return songs_by_row
 
 def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
-    existing_songs_uuids = set([existing_songs_by_row[k].uuid for k in existing_songs_by_row])
+    existing_songs_uuids = {existing_songs_by_row[r].uuid:(r,existing_songs_by_row[r]) for r in existing_songs_by_row}
     to_append = []
+    to_update = []
     for song in drive_songs:
         if song.uuid not in existing_songs_uuids:
             to_append.append(song)
+        else:
+            row, existing_song = existing_songs_uuids[song.uuid]
+            if existing_song.view_link == '':
+                to_update.append({
+                    'range': Song.SPREADSHEET_COLUMNS['view_link'] + str(row + 1),
+                    'values': [[song.view_link]]
+                })
 
-    values = [[s.uuid, s.artist, None, s.title, None, s.year, s.link] for s in to_append]
+    values = [[s.uuid, s.artist, None, s.title, None, s.year, s.download_link, s.view_link] for s in to_append]
     result = service.spreadsheets().values().append(
         spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
         valueInputOption='RAW',
         range='songs',
         body={ 'values': values }).execute()
+
+    result = service.spreadsheets().values().batchUpdate(
+        spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
+        body={
+            'valueInputOption': 'RAW',
+            'data': to_update
+        }).execute()
 
 def generate(songs):
     env = jinja2.Environment(
@@ -88,15 +109,21 @@ def generate(songs):
     if not os.path.exists(jam_dir):
         os.makedirs(jam_dir)
 
-    copy_tree(pdir('css'), os.path.join(jam_dir, 'css'))
-    copy_tree(pdir('js'), os.path.join(jam_dir, 'js'))
-
-    def render(name, _songs):
-        template = env.get_template(name)
-        template.stream(songs=_songs).dump(os.path.join(jam_dir, name))
+    static_files = []
+    static_file_hashes = {}
+    static_files.extend(copy_tree(pdir('css'), os.path.join(jam_dir, 'css')))
+    static_files.extend(copy_tree(pdir('js'), os.path.join(jam_dir, 'js')))
+    for f in static_files:
+        rel_path = os.path.relpath(f, jam_dir)
+        static_file_hashes[rel_path] = get_hash(f)
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
-    render('index.html', songs_by_title)
+
+    def render(name):
+        template = env.get_template(name)
+        template.stream(songs=songs_by_title, static_file_hashes=static_file_hashes).dump(os.path.join(jam_dir, name))
+
+    render('index.html')
 
 def publish(aws_profile):
     session = boto3.Session(profile_name=aws_profile)
@@ -114,7 +141,8 @@ def publish(aws_profile):
                 remote_path,
                 ExtraArgs={
                     'ContentType': content_type + '; charset=utf-8',
-                    'StorageClass': 'REDUCED_REDUNDANCY'
+                    'StorageClass': 'REDUCED_REDUNDANCY',
+                    'CacheControl': 'no-cache'
                 }
             )
 
@@ -141,11 +169,19 @@ def serve():
 
     with socketserver.TCPServer(('', PORT), Handler) as httpd:
         print('serving at port', PORT)
-        print('http://localhost:8000/jam/title.html')
+        print('http://localhost:8000/jam/')
         httpd.serve_forever()
 
 def pdir(name):
     return os.path.normpath(os.path.join(os.getcwd(), name))
+
+def get_hash(f_path):
+    h = hashlib.new('md5')
+    with open(f_path, 'rb') as file:
+        data = file.read()
+    h.update(data)
+    digest = h.hexdigest()
+    return digest
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

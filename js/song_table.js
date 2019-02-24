@@ -29,7 +29,11 @@
         'click',
         function(e) {
           var tr = that._getTr(e);
-          window.location = tr.getAttribute('data-link');
+          if (mobileAndTabletcheck()) {
+            window.location = tr.getAttribute('data-download-link');
+          } else {
+            window.location = tr.getAttribute('data-view-link');
+          }
         },
         false
       );
