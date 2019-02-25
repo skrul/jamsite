@@ -27,7 +27,7 @@
       <tbody>
       {% for song in songs %}
       <tr data-download-link="{{ song.download_link }}" data-view-link="{{ song.view_link }}">
-        <td data-sort="{{ song.title_sort }}">{{ song.title }}</td>
+        <td class="song-title" data-sort="{{ song.title_sort }}">{{ song.title }}</td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>
       </tr>

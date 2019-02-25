@@ -9,29 +9,53 @@
       that.table = table;
       that.nav = nav;
       this.currentMode = null;
+      this.touchTimer = null;
+      this.touchTr = null;
 
       table.addEventListener(
         'touchstart',
         function(e) {
           var tr = that._getTr(e);
-          tr.classList.add('selected');
+          that.touchTr = tr;
+          that.touchTimer = setTimeout(function() { that.touchTimerFired(); }, 200);
         },
         false
       );
+
       table.addEventListener(
         'touchend',
         function(e) {
-          that.clearRowSelection();
+          var tr = that.touchTr;
+          if (tr) {
+            tr.classList.add('selected');
+            window.location = tr.getAttribute('data-download-link');
+          }
+          that.touchTr = null;
         },
         false
       );
+
+      table.addEventListener(
+        'touchmove',
+        function(e) {
+          that.cancelTouch();
+        },
+        false
+      );
+
+      table.addEventListener(
+        'touchcancel',
+        function(e) {
+          that.cancelTouch();
+        },
+        false
+      );
+
       table.addEventListener(
         'click',
         function(e) {
           var tr = that._getTr(e);
-          if (mobileAndTabletcheck()) {
-            window.location = tr.getAttribute('data-download-link');
-          } else {
+          if (!mobileAndTabletcheck()) {
             window.location = tr.getAttribute('data-view-link');
           }
         },
@@ -53,6 +77,21 @@
         function(e) { that.sort('year'); },
         false
       );
+    },
+
+    touchTimerFired: function() {
+      if (this.touchTr) {
+        this.touchTr.classList.add('selected');
+      }
+    },
+
+    cancelTouch: function() {
+      this.touchTr = null;
+      if (this.touchTimer) {
+        clearTimeout(this.touchTimer);
+        this.touchTimer = null;
+      }
+      this.clearRowSelection();
     },
 
     clearRowSelection: function() {

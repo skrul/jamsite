@@ -57,6 +57,7 @@ tr.selected {
   text-decoration: none;
   line-height: 6.5rem;
   color: #222;
+  cursor: pointer;
 }
 
 .navbar-link.selected {
@@ -65,4 +66,14 @@ tr.selected {
 
 #songs {
     margin-top: 6.5rem;
+}
+
+@media (min-width: 750px) {
+    .song-title {
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .song-title:hover {
+        text-decoration: underline;
+    }
 }
