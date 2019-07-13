@@ -34,7 +34,7 @@ def get_songs_from_drive(service):
         response = service.files().list(
             q=f"'{JAM_SONGS_FOLDER_ID}' in parents and trashed = false",
             fields=
-            'nextPageToken, files(id, name, webContentLink, webViewLink)',
+            'nextPageToken, files(id, name, webContentLink, webViewLink, modifiedTime)',
             pageToken=page_token).execute()
         for file in response.get('files', []):
             match = re.match(r'(.*) [-‐] (.*) \((.*)\)\.pdf', file.get('name'))
@@ -42,7 +42,9 @@ def get_songs_from_drive(service):
                 song = Song('gd:' + file.get('id'), match.group(2), None,
                             match.group(1), None, match.group(3),
                             file.get('webContentLink'),
-                            file.get('webViewLink'))
+                            file.get('webViewLink'),
+                            file.get('modifiedTime'),
+                            False)
                 songs.append(song)
             else:
                 print('Skipping ' + file.get('name'))
@@ -63,7 +65,7 @@ def read_songs_spreadsheet(service):
         d = defaultdict(lambda: '')
         for i, v in enumerate(value):
             d[i] = v
-        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7])
+        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9] == 'x')
         songs_by_row[row] = song
     return songs_by_row
 
@@ -75,7 +77,9 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
     }
     to_append = []
     to_update = []
+    drive_songs_uuids = set()
     for song in drive_songs:
+        drive_songs_uuids.add(song.uuid)
         if song.uuid not in existing_songs_uuids:
             to_append.append(song)
         else:
@@ -86,15 +90,24 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
                     Song.SPREADSHEET_COLUMNS['view_link'] + str(row + 1),
                     'values': [[song.view_link]]
                 })
+    for row in existing_songs_by_row:
+        existing_song = existing_songs_by_row[row]
+        is_deleted = not existing_song.uuid in drive_songs_uuids
+        if existing_song.deleted != is_deleted:
+            to_update.append({
+                'range':
+                Song.SPREADSHEET_COLUMNS['deleted'] + str(row + 1),
+                'values': [['x' if is_deleted else '']]
+            })
 
     values = [[
         s.uuid, s.artist, None, s.title, None, s.year, s.download_link,
-        s.view_link
+        s.view_link, s.modified_time, ''
     ] for s in to_append]
     result = service.spreadsheets().values().append(
         spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
         valueInputOption='RAW',
-        range='songs',
+        range='songs!A1',
         body={
             'values': values
         }).execute()
