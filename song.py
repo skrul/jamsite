@@ -13,7 +13,7 @@ class Song(object):
     }
 
     def __init__(self, uuid, artist, artist_sort, title, title_sort, year,
-                 download_link, view_link, modiifed_time, deleted):
+                 download_link, view_link, modified_time, deleted):
         self.uuid = uuid
         self.artist = artist
         self.artist_sort = artist_sort
@@ -22,7 +22,7 @@ class Song(object):
         self.year = year
         self.download_link = download_link
         self.view_link = view_link
-        self.modiifed_time = modiifed_time
+        self.modified_time = modified_time
         self.deleted = deleted
 
     def __repr__(self):
@@ -35,7 +35,7 @@ class Song(object):
             'year: ' + self.year,
             'download_link: ' + self.download_link,
             'view_link: ' + self.view_link,
-            'modified_time: ' + self.modiifed_time,
+            'modified_time: ' + self.modified_time,
             'deleted: ' + self.deleted,
         ]
         return ', '.join(a)

@@ -3,3 +3,5 @@ google-auth-httplib2
 google-auth-oauthlib
 Jinja2
 boto3
+nltk
+unidecode

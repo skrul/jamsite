@@ -14,6 +14,8 @@ from distutils.dir_util import copy_tree
 import pickle
 from collections import defaultdict
 import hashlib
+from search_indexer import SearchIndexer
+import json
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = '1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb'
@@ -133,6 +135,17 @@ def generate(songs):
     static_file_hashes = {}
     static_files.extend(copy_tree(pdir('css'), os.path.join(jam_dir, 'css')))
     static_files.extend(copy_tree(pdir('js'), os.path.join(jam_dir, 'js')))
+
+    si = SearchIndexer()
+    for song in songs:
+        si.add_song(song)
+    index_str = json.dumps(si.index_as_dict(), separators=(',', ':'))
+    id_map_str = json.dumps(si.uuids, separators=(',', ':'))
+    search_data_path = os.path.join(jam_dir, 'js', 'search_data.js')
+    with open(search_data_path, 'w') as f:
+        f.write(f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str};")
+    static_files.append(search_data_path)
+
     for f in static_files:
         rel_path = os.path.relpath(f, jam_dir)
         static_file_hashes[rel_path] = get_hash(f)
