@@ -11,6 +11,7 @@
       this.currentMode = null;
       this.touchTimer = null;
       this.touchTr = null;
+      this.uuidToRow = null;
 
       table.addEventListener(
         'touchstart',
@@ -146,12 +147,32 @@
       window.scrollTo(0, 0);
     },
 
+    showRows: function(uuids) {
+      var u = new Set(uuids);
+      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
+        var row = this.table.tBodies[0].rows[i];
+        row.style.display = u.has(row.id) ? 'block' : 'none';
+      }
+    },
+
+    showAllRows: function() {
+      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
+        var row = this.table.tBodies[0].rows[i];
+        row.style.display = 'block';
+      }
+    },
+
     _getNavItem: function(name) {
       return this.nav.getElementsByClassName(name)[0];
     },
 
     _getTr: function(e) {
       return e.target.parentElement;
+    },
+
+    _getUuidToRow: function() {
+      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
+      }
     }
   }
 

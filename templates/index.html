@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
   <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
   <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
+  <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
 </head>
 <body>
   <div class="container">
@@ -28,13 +29,14 @@
 <!--
           <li class="navbar-item"><a class="navbar-link search">&#x1F50D;</a></li>
 -->
+          <li class="navbar-item"><input id="search" type="text"></li>
         </ul>
       </div>
     </nav>
     <table id="songs" class="u-full-width">
       <tbody>
       {% for song in songs %}
-      <tr data-download-link="{{ song.download_link }}" data-view-link="{{ song.view_link }}">
+      <tr id="{{ song.uuid }}" data-download-link="{{ song.download_link }}" data-view-link="{{ song.view_link }}">
         <td class="song-title" data-sort="{{ song.title_sort }}">{{ song.title }}</td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>
@@ -55,6 +57,7 @@
 <script>
   var st = new SongTable(document.getElementById("songs"), document.getElementById("nav"));
   st.sort('title');
+  var s = new Search(document.getElementById("search"), st, INDEX_DATA, INDEX_ID_MAP);
 </script>
 </body>
 </html>
