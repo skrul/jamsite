@@ -8,10 +8,16 @@
       var that = this;
       that.table = table;
       that.nav = nav;
-      this.currentMode = null;
       this.touchTimer = null;
       this.touchTr = null;
       this.uuidToRow = null;
+      this.searchResults = null;
+      this.sortColumn = 'title';
+      this.rows = []
+
+      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
+        this.rows.push(this.table.tBodies[0].rows[i]);
+      }
 
       table.addEventListener(
         'touchstart',
@@ -102,64 +108,76 @@
       }
     },
 
-    sort: function(type) {
+    sort: function(column) {
+      this._getNavItem(this.sortColumn).classList.remove('selected');
+      this.sortColumn = column;
+      this._getNavItem(this.sortColumn).classList.add('selected');
+      this.refreshTable();
+    },
+
+    refreshTable: function() {
       var toKey;
-      if (type == 'title') {
+      if (this.sortColumn == 'title') {
         toKey = function(c) { return [c[0], c[1], c[2]]; }
-      } else if (type == 'artist') {
+      } else if (this.sortColumn == 'artist') {
         toKey = function(c) { return [c[1], c[0], c[2]]; }
       } else {
         toKey = function(c) { return [c[2], c[1], c[0]]; }
       }
 
-      var rowData = [];
-      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
-        var row = this.table.tBodies[0].rows[i];
+      var get_keys_for_row = function(row) {
         var get_cell_value = function(idx) {
           return row.cells[idx].getAttribute('data-sort') || row.cells[idx].textContent;
         }
-        var cellsValues = [
+        return toKey([
           get_cell_value(0),
           get_cell_value(1),
           get_cell_value(2)
-        ];
-        rowData.push({
-          tr: row,
-          key: toKey(cellsValues)
-        });
+        ]);
       }
 
-      rowData.sort(function(a, b) {
-        return a['key'][0].localeCompare(b['key'][0]) ||
-          a['key'][1].localeCompare(b['key'][1]) ||
-          a['key'][2].localeCompare(b['key'][2]);
+      this.rows.sort(function(a, b) {
+        a_values = get_keys_for_row(a);
+        b_values = get_keys_for_row(b);
+        return a_values[0].localeCompare(b_values[0]) ||
+          a_values[1].localeCompare(b_values[1]) ||
+          a_values[2].localeCompare(b_values[2]);
       });
 
-      for (var i = 0; i < rowData.length; i++) {
-        this.table.tBodies[0].appendChild(rowData[i]['tr']);
+      var rest = [];
+      for (var i = 0; i < this.rows.length; i++) {
+        var row = this.rows[i];
+        var appendRow = false;
+        if (this.searchResults) {
+          appendRow = this.searchResults.has(row.id);
+        } else {
+          appendRow = true;
+        }
+
+        if (appendRow) {
+          row.style.visibility = "visible";
+          this.table.tBodies[0].appendChild(row);
+        } else {
+          rest.push(row);
+        }
       }
 
-      if (this.currentMode) {
-        this._getNavItem(this.currentMode).classList.remove('selected');
+      for (var i = 0; i < rest.length; i++) {
+        rest[i].style.visibility = "hidden";
+        this.table.tBodies[0].appendChild(rest[i]);
       }
-      this._getNavItem(type).classList.add('selected');
-      this.currentMode = type;
+
       window.scrollTo(0, 0);
     },
 
     showRows: function(uuids) {
-      var u = new Set(uuids);
-      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
-        var row = this.table.tBodies[0].rows[i];
-        row.style.display = u.has(row.id) ? 'block' : 'none';
-      }
+      this.searchResults = new Set(uuids);
+      this.refreshTable();
     },
 
     showAllRows: function() {
-      for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
-        var row = this.table.tBodies[0].rows[i];
-        row.style.display = 'block';
-      }
+      this.searchResults = null;
+      this.refreshTable();
     },
 
     _getNavItem: function(name) {
