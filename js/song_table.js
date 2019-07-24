@@ -144,7 +144,7 @@
           a_values[2].localeCompare(b_values[2]);
       });
 
-      var rest = [];
+      var tableBody = this.table.tBodies[0];
       for (var i = 0; i < this.rows.length; i++) {
         var row = this.rows[i];
         var appendRow = false;
@@ -155,16 +155,12 @@
         }
 
         if (appendRow) {
-          row.style.visibility = "visible";
-          this.table.tBodies[0].appendChild(row);
+          tableBody.appendChild(row);
         } else {
-          rest.push(row);
+          if (row.parentNode == tableBody) {
+            tableBody.removeChild(row);
+          }
         }
-      }
-
-      for (var i = 0; i < rest.length; i++) {
-        rest[i].style.visibility = "hidden";
-        this.table.tBodies[0].appendChild(rest[i]);
       }
 
       window.scrollTo(0, 0);
