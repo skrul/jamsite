@@ -204,10 +204,13 @@ def serve():
     m[''] = 'text/plain'
     m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()]))
 
-    with socketserver.TCPServer(('', PORT), Handler) as httpd:
-        print('serving at port', PORT)
-        print('http://localhost:8000/jam/')
-        httpd.serve_forever()
+    server = socketserver.TCPServer(('', PORT), Handler, bind_and_activate=False)
+    server.allow_reuse_address = True
+    server.server_bind()
+    server.server_activate()
+    print('serving at port', PORT)
+    print('http://localhost:8000/jam/')
+    server.serve_forever()
 
 
 def pdir(name):

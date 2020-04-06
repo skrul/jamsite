@@ -1,13 +1,12 @@
 (function() {
-  function SongTable(table, nav) {
-    this.init(table, nav);
+  function SongTable(table) {
+    this.init(table);
   }
 
   SongTable.prototype = {
-    init: function(table, nav) {
+    init: function(table) {
       var that = this;
       that.table = table;
-      that.nav = nav;
       this.touchTimer = null;
       this.touchTr = null;
       this.uuidToRow = null;
@@ -69,21 +68,6 @@
         false
       );
 
-      this._getNavItem('title').addEventListener(
-        'click',
-        function(e) { that.sort('title'); },
-        false
-      );
-      this._getNavItem('artist').addEventListener(
-        'click',
-        function(e) { that.sort('artist'); },
-        false
-      );
-      this._getNavItem('year').addEventListener(
-        'click',
-        function(e) { that.sort('year'); },
-        false
-      );
     },
 
     touchTimerFired: function() {
@@ -109,9 +93,9 @@
     },
 
     sort: function(column) {
-      this._getNavItem(this.sortColumn).classList.remove('selected');
+      //this._getNavItem(this.sortColumn).classList.remove('selected');
       this.sortColumn = column;
-      this._getNavItem(this.sortColumn).classList.add('selected');
+      //this._getNavItem(this.sortColumn).classList.add('selected');
       this.refreshTable();
     },
 
@@ -174,10 +158,6 @@
     showAllRows: function() {
       this.searchResults = null;
       this.refreshTable();
-    },
-
-    _getNavItem: function(name) {
-      return this.nav.getElementsByClassName(name)[0];
     },
 
     _getTr: function(e) {
