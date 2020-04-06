@@ -23,13 +23,17 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background-color: #ff5a5f !important;
 }
 
-
 @media (min-width: 400px) {
   .navbar-top {
     width: inherit !important;
   }
 }
 
+@media (min-width: 1200px) {
+  .navbar-top {
+    width: 960px !important;
+  }
+}
 
 /* Navbar */
 .navbar-top {
