@@ -62,7 +62,7 @@
         function(e) {
           var tr = that._getTr(e);
           if (!mobileAndTabletcheck()) {
-            window.location = tr.getAttribute('data-view-link');
+            window.open(tr.getAttribute('data-view-link'), '_blank');
           }
         },
         false
