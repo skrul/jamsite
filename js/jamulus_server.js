@@ -39,19 +39,19 @@
       }
 
       if (this.state == 'stopped') {
-        this.serverControl.innerHTML = 'Start';
+        this.serverControl.innerHTML = ' Start';
         this.serverControl.disabled = false;
         this.serverStartedAt.innerHTML = '';
       }
 
       if (this.state == 'stopping') {
-        this.serverControl.innerHTML = 'Stopping...';
+        this.serverControl.innerHTML = 'Stopping...<i>\uD83C\uDFB8</i>';
         this.serverControl.disabled = true;
         this.serverStartedAt.innerHTML = '';
       }
 
       if (this.state == 'pending') {
-        this.serverControl.innerHTML = 'Starting...';
+        this.serverControl.innerHTML = 'Starting...<i>\uD83C\uDFB8</i>';
         this.serverControl.disabled = true;
         this.serverStartedAt.innerHTML = '';
       }
