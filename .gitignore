@@ -4,4 +4,6 @@ token.pickle
 songs.pickle
 credentials.json
 *.pyc
-
+lib/
+pyvenv.cfg
+bin/
