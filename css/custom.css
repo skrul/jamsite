@@ -27,6 +27,21 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   .navbar-top {
     width: inherit !important;
   }
+  #songs { margin-top: 12rem; }
+}
+
+@media (min-width: 550px) {
+  #songs { margin-top: 6.5rem; }
+}
+
+@media (min-width: 750px) {
+    .song-title {
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .song-title:hover {
+        text-decoration: underline;
+    }
 }
 
 @media (min-width: 1200px) {
@@ -37,30 +52,24 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 
 /* Navbar */
 .navbar-top {
-  width: 90%;
   display: block;
   margin: 0 auto;
   height: 5rem;
   background: #fff;
   z-index: 99;
   position: fixed;
-  top: 0;
+  padding-top: 1rem;
 }
-.navbar-top > .container {
-  width: 100%;
-  padding: 0px;
-  margin-top: 10px;
-}
-.navbar-top td {
+
+.navbar-top > .column {
   border: none;
   padding-left: 0;
   padding-right: 0;
   white-space: nowrap;
   background: #fff;
 }
-.popover-td {
-}
-.search-td {
+
+.searchbar {
     width: 100%;
 }
 
@@ -90,10 +99,10 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 #sort-popover-toggle {
   text-transform: uppercase;
   color: #222;
-  font-size: 1.0rem;
   font-weight: 600;
   float: left;
-  width: 60px;
+  margin-top: .5rem;
+  font-size: 1.5rem;
 }
 
 #search {
@@ -102,26 +111,9 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   width: 100%;
 }
 
-
 .navbar-link.selected {
   border-bottom: 2px solid currentColor;
 }
-
-#songs {
-    margin-top: 6.5rem;
-}
-
-@media (min-width: 750px) {
-    .song-title {
-        cursor: pointer;
-        text-decoration: none;
-    }
-    .song-title:hover {
-        text-decoration: underline;
-    }
-}
-
-
 
 /* Popover */
 .popover.open {
@@ -140,7 +132,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   -webkit-filter: drop-shadow(0 0 6px rgba(0,0,0,.1));
      -moz-filter: drop-shadow(0 0 6px rgba(0,0,0,.1));
           filter: drop-shadow(0 0 6px rgba(0,0,0,.1)); }
-.popover-item:first-child .popover-link:after, 
+.popover-item:first-child .popover-link:after,
 .popover-item:first-child .popover-link:before {
   bottom: 100%;
   left: 50%;

@@ -1,5 +1,5 @@
 from trie import Trie
-import nltk
+from nltk.tokenize import WhitespaceTokenizer
 import unidecode
 import re
 import string
@@ -20,10 +20,9 @@ class SearchIndexer:
     def _tokenize(self, song):
         s = ' '.join([song.artist, song.title])
         tokens = []
-        for t in nltk.tokenize.word_tokenize(s):
+        for t in WhitespaceTokenizer().tokenize(s):
             t = unidecode.unidecode(t)
             t = t.lower()
-            t = t.strip(string.punctuation)
             if len(t) > 0:
                 tokens.append(t)
         tokens.append(song.year)
