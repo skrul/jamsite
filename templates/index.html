@@ -17,26 +17,29 @@
   <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
   <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
   <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
+  <script src="js/random.js?v={{ static_file_hashes['js/random.js'] }}"></script>
   <script src="js/sort_popover.js?v={{ static_file_hashes['js/sort_popover.js'] }}"></script>
 </head>
 <body>
   <div class="container">
-  <table class="navbar-top">
-  <tr>
-    <td class="popover-td">
-      <a id="sort-popover-toggle" data-popover="#sort-popover" href="#">Title &blacktriangledown;</a>
-      <div id="sort-popover-body" class="popover">
-        <ul class="popover-list" id="nav">
-          <li class="popover-item"><a class="popover-link title">Title</a></li>
-          <li class="popover-item"><a class="popover-link artist">Artist</a></li>
-          <li class="popover-item"><a class="popover-link year">Year</a></li>
-        </ul>
+    <div class="row navbar-top">
+      <div class="one column">
+        <a id="sort-popover-toggle" data-popover="#sort-popover" href="#">Title &blacktriangledown;</a>
+        <div id="sort-popover-body" class="popover">
+          <ul class="popover-list" id="nav">
+            <li class="popover-item"><a class="popover-link title">Title</a></li>
+            <li class="popover-item"><a class="popover-link artist">Artist</a></li>
+            <li class="popover-item"><a class="popover-link year">Year</a></li>
+          </ul>
+        </div>
       </div>
-    </td>
-    <td class="search-td"><input id="search" type="search"></td>
-  </tr>
-  </table>
-
+      <div class="eight columns">
+        <input id="search" type="search" class="searchbar">
+      </div>
+      <div class="one column">
+        <button id="random" class="button-primary">Random Song</button>
+      </div>
+    </div>
   </div>
   <div class="container">
     <table id="songs" class="u-full-width">
@@ -64,6 +67,7 @@
   var st = new SongTable(document.getElementById("songs"));
   st.sort('title');
   var s = new Search(document.getElementById("search"), st, INDEX_DATA, INDEX_ID_MAP);
+  var r = new Random(document.getElementById("random"), s, INDEX_ID_MAP);
   var sp = new SortPopover(
     document.getElementById("sort-popover-toggle"),
     document.getElementById("sort-popover-body"),
