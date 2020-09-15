@@ -29,6 +29,9 @@
       // put the song name and artist name in the search string
       var searchString = `${songElements[0].textContent} ${songElements[1].textContent}`;
 
+      searchString = searchString.replace("’", "'"); // replace curly single quote with regular one
+      searchString = searchString.replace(/[^\x20-\x7E]/g, ''); // remove wacky unicode chars
+
       document.getElementById('search').value = searchString;
       this.search.search(searchString);
     }

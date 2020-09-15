@@ -27,6 +27,21 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   .navbar-top {
     width: inherit !important;
   }
+  #songs { margin-top: 12rem; }
+}
+
+@media (min-width: 550px) {
+  #songs { margin-top: 6.5rem; }
+}
+
+@media (min-width: 750px) {
+    .song-title {
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .song-title:hover {
+        text-decoration: underline;
+    }
 }
 
 @media (min-width: 1200px) {
@@ -43,7 +58,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background: #fff;
   z-index: 99;
   position: fixed;
-  margin-top: 1rem;
+  padding-top: 1rem;
 }
 
 .navbar-top > .column {
@@ -84,10 +99,10 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 #sort-popover-toggle {
   text-transform: uppercase;
   color: #222;
-  font-size: 1.5rem;
   font-weight: 600;
   float: left;
-  width: 60px;
+  margin-top: .5rem;
+  font-size: 1.5rem;
 }
 
 #search {
@@ -96,26 +111,9 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   width: 100%;
 }
 
-
 .navbar-link.selected {
   border-bottom: 2px solid currentColor;
 }
-
-#songs {
-    margin-top: 6.5rem;
-}
-
-@media (min-width: 750px) {
-    .song-title {
-        cursor: pointer;
-        text-decoration: none;
-    }
-    .song-title:hover {
-        text-decoration: underline;
-    }
-}
-
-
 
 /* Popover */
 .popover.open {
