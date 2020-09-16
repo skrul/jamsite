@@ -23,7 +23,7 @@
 <body>
   <div class="container">
     <div class="row navbar-top">
-      <div class="one column">
+      <div class="one column sort">
         <a id="sort-popover-toggle" data-popover="#sort-popover" href="#">Title &blacktriangledown;</a>
         <div id="sort-popover-body" class="popover">
           <ul class="popover-list" id="nav">
@@ -33,15 +33,13 @@
           </ul>
         </div>
       </div>
-      <div class="eight columns">
-        <input id="search" type="search" class="searchbar">
+      <div class="eight columns search-col">
+        <input id="search" type="search">
       </div>
       <div class="one column">
         <button id="random" class="button-primary">Random Song</button>
       </div>
     </div>
-  </div>
-  <div class="container">
     <table id="songs" class="u-full-width">
       <tbody>
       {% for song in songs %}
