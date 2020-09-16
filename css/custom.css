@@ -23,30 +23,52 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background-color: #ff5a5f !important;
 }
 
+#random { padding: 0 10px;}
+#searchFilter {
+  background: #fff;
+  text-align: center;
+}
+
+#searchFilter button {
+  padding: 0;
+  text-transform: lowercase;
+  height: 30px;
+  line-height: 30px;
+}
+
+@media (min-width: 300px) {
+  .navbar-top { width: 90%; }
+  #songs { margin-top: 20rem; }
+}
+
 @media (min-width: 400px) {
-  .navbar-top {
-    width: inherit !important;
-  }
-  #songs { margin-top: 12rem; }
+  .navbar-top { width: inherit; }
+}
+
+@media (min-width: 435px) {
+  #songs { margin-top: 16rem; }
 }
 
 @media (min-width: 550px) {
-  #songs { margin-top: 6.5rem; }
+  .column.sort { width: 5rem; }
+  .columns.search-col { width: 55%; }
+  #songs { margin-top: 10rem; }
 }
 
 @media (min-width: 750px) {
-    .song-title {
-        cursor: pointer;
-        text-decoration: none;
-    }
-    .song-title:hover {
-        text-decoration: underline;
-    }
+  .columns.search-col { width: 65.33333%; }
+  .song-title {
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .song-title:hover {
+    text-decoration: underline;
+  }
 }
 
 @media (min-width: 1200px) {
   .navbar-top {
-    width: 960px !important;
+    width: 960px;
   }
 }
 
@@ -58,6 +80,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background: #fff;
   z-index: 99;
   position: fixed;
+  top: 0;
   padding-top: 1rem;
 }
 
@@ -67,10 +90,6 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   padding-right: 0;
   white-space: nowrap;
   background: #fff;
-}
-
-.searchbar {
-    width: 100%;
 }
 
 .navbar-list {

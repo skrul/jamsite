@@ -141,9 +141,11 @@ def generate(songs):
         si.add_song(song)
     index_str = json.dumps(si.index_as_dict(), separators=(',', ':'))
     id_map_str = json.dumps(si.uuids, separators=(',', ':'))
+    decades_map_str = json.dumps(si.decades, separators=(',', ':'))
+    decades = si.decades
     search_data_path = os.path.join(jam_dir, 'js', 'search_data.js')
     with open(search_data_path, 'w') as f:
-        f.write(f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str};")
+        f.write(f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str};")
     static_files.append(search_data_path)
 
     for f in static_files:
@@ -153,9 +155,11 @@ def generate(songs):
     songs_by_title = sorted(songs, key=lambda s: s.title)
 
     def render(name):
+        decade_list = list(decades.keys())
+        decade_list.sort()
         template = env.get_template(name)
         template.stream(
-            songs=songs_by_title, static_file_hashes=static_file_hashes).dump(
+            songs=songs_by_title, decades=decade_list, static_file_hashes=static_file_hashes).dump(
                 os.path.join(jam_dir, name))
 
     render('index.html')

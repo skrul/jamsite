@@ -1,14 +1,16 @@
 (function() {
-  function Search(searchInput, songTable, indexData, indexIdMap) {
-    this.init(searchInput, songTable, indexData, indexIdMap);
+  function Search(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap) {
+    this.init(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap);
   }
   Search.prototype = {
-    init: function(searchInput, songTable, indexData, indexIdMap) {
+    init: function(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap) {
       var that = this;
       that.searchInput = searchInput;
+      that.searchFilter = searchFilter;
       that.songTable = songTable;
       that.indexData = indexData;
       that.indexIdMap = indexIdMap;
+      that.decadesMap = decadesMap;
 
       searchInput.addEventListener(
         'input',
@@ -21,22 +23,50 @@
       );
     },
 
-    search: function(s) {
-      if (s == '') {
-        this.songTable.showAllRows();
-        return;
-      }
-      var terms = s.toLowerCase().split(/,?\s+/);
-      var res = null;
-      for (var i = 0; i < terms.length; i++) {
-        if (terms[i] == '') {
-          continue;
+    /* returns a set of all songids matching active filters */
+    filteredSongIdSet: function() {
+      var that = this;
+      var res = new Set();
+      this.searchFilter.active().forEach(function(decade) {
+        if (that.decadesMap[decade] !== undefined) {
+          that.decadesMap[decade].forEach(function(songid) {
+             res.add(songid);
+          });
         }
-        var ids = new Set(this.searchTerm(terms[i]));
-        if (res) {
-          res = new Set([...res].filter(x => ids.has(x)))
-        } else {
-          res = ids;
+      });
+      return res;
+    },
+
+    search: function(s) {
+      var res = null;
+      var filteredSongs = this.filteredSongIdSet();
+
+      if (s == '') { // No search terms in searchbar
+        if (this.searchFilter.active().size == 0) { // and no filters
+          // just display everything
+          this.songTable.showAllRows();
+          return;
+        } else { // show all the songs indexed under active filters
+          res = filteredSongs;
+        }
+      } else { // searchbar has text in it
+        var terms = s.toLowerCase().split(/,?\s+/);
+
+        // use trie to find matches for all the search terms first
+        for (var i = 0; i < terms.length; i++) {
+          if (terms[i] == '') {
+            continue;
+          }
+          var ids = new Set(this.searchTerm(terms[i]));
+          if (res) {
+            res = new Set([...res].filter(x => ids.has(x)))
+          } else {
+            res = ids;
+          }
+        }
+        // then apply filters if applicable
+        if (filteredSongs.size > 0) {
+          res = new Set([...res].filter(x => filteredSongs.has(x)));
         }
       }
 
@@ -53,6 +83,7 @@
     searchTerm: function(s) {
       var ids = null;
       var n = this.indexData;
+
       for (var i = 0; i < s.length; i++) {
         node = n[s[i]];
         if (node) {
