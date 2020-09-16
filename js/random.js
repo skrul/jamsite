@@ -1,11 +1,12 @@
 (function() {
-  function Random(randomButton, search, indexIdMap) {
-    this.init(randomButton, search, indexIdMap);
+  function Random(randomButton, songTable, search, indexIdMap) {
+    this.init(randomButton, songTable, search, indexIdMap);
   }
   Random.prototype = {
-    init: function(randomButton, search, indexIdMap) {
+    init: function(randomButton, songTable, search, indexIdMap) {
       var that = this;
       that.randomButton = randomButton;
+      that.songTable = songTable;
       that.search = search;
       that.indexIdMap = indexIdMap;
 
@@ -20,20 +21,24 @@
 
     clickRandomButton: function() {
       this.search.search(''); // clear previous searches to show all rows
-      this.searchRandomSong();
+      this.showRandomSong();
     },
 
-    searchRandomSong: function() {
-      var randomSongUUID = this.indexIdMap[Math.floor(this.indexIdMap.length * Math.random())];
-      var songElements = document.getElementById(randomSongUUID).children;
-      // put the song name and artist name in the search string
-      var searchString = `${songElements[0].textContent} ${songElements[1].textContent}`;
+    showRandomSong: function() {
+      var filteredSongIds = Array.from(this.search.filteredSongIdSet());
+      var randomSongUuid = null;
+      var songElements = null;
 
-      searchString = searchString.replace("’", "'"); // replace curly single quote with regular one
-      searchString = searchString.replace(/[^\x20-\x7E]/g, ''); // remove wacky unicode chars
+      if (filteredSongIds.length > 0) {
+        randomSongUuid = this.indexIdMap[filteredSongIds[Math.floor(filteredSongIds.length * Math.random())]];
+      } else {
+        randomSongUuid = this.indexIdMap[Math.floor(this.indexIdMap.length * Math.random())];
+      }
 
-      document.getElementById('search').value = searchString;
-      this.search.search(searchString);
+      songElements = document.getElementById(randomSongUuid).children;
+      // put the song name in the search string so it can be cleared
+      document.getElementById('search').value = songElements[0].textContent;
+      this.songTable.showRows([randomSongUuid]);
     }
   }
 

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
   <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
   <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
+  <script src="js/filter.js?v={{ static_file_hashes['js/filter.js'] }}"></script>
   <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
   <script src="js/random.js?v={{ static_file_hashes['js/random.js'] }}"></script>
   <script src="js/sort_popover.js?v={{ static_file_hashes['js/sort_popover.js'] }}"></script>
@@ -38,6 +39,11 @@
       </div>
       <div class="one column">
         <button id="random" class="button-primary">Random Song</button>
+      </div>
+      <div class="twelve columns" id="searchFilter">
+        {% for decade in decades.keys() %}
+        <button class="filter" id='decade{{decade}}'>{{decade}}</button>
+        {% endfor %}
       </div>
     </div>
     <table id="songs" class="u-full-width">
@@ -64,8 +70,9 @@
 <script>
   var st = new SongTable(document.getElementById("songs"));
   st.sort('title');
-  var s = new Search(document.getElementById("search"), st, INDEX_DATA, INDEX_ID_MAP);
-  var r = new Random(document.getElementById("random"), s, INDEX_ID_MAP);
+  var f = new Filter(document.getElementById("searchFilter"));
+  var s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
+  var r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
   var sp = new SortPopover(
     document.getElementById("sort-popover-toggle"),
     document.getElementById("sort-popover-body"),
