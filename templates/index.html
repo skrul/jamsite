@@ -41,7 +41,7 @@
         <button id="random" class="button-primary">Random Song</button>
       </div>
       <div class="twelve columns" id="searchFilter">
-        {% for decade in decades.keys() %}
+        {% for decade in decades %}
         <button class="filter" id='decade{{decade}}'>{{decade}}</button>
         {% endfor %}
       </div>

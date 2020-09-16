@@ -155,9 +155,11 @@ def generate(songs):
     songs_by_title = sorted(songs, key=lambda s: s.title)
 
     def render(name):
+        decade_list = list(decades.keys())
+        decade_list.sort()
         template = env.get_template(name)
         template.stream(
-            songs=songs_by_title, decades=decades, static_file_hashes=static_file_hashes).dump(
+            songs=songs_by_title, decades=decade_list, static_file_hashes=static_file_hashes).dump(
                 os.path.join(jam_dir, name))
 
     render('index.html')
