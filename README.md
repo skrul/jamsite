@@ -3,21 +3,24 @@ A searchable song packet directory!
 
 ## Dev Environment Setup
 
-### Create Virtual Environment
-Make sure you're using Python 3!
+This project is using [poetry](https://python-poetry.org/docs/), see its docs for how to install.
 
-`git clone` the repo and `cd` into it.
+First `git clone` the repo and `cd` into it.
+
 ```
 cd ~/your/projects/folder/
 git clone git@github.com:skrul/jamsite.git
 cd jamsite
 ```
 
-Create the virtual environment for this project.
+Install the dependencies:
 ```
-python -m venv ~/your/projects/folder/jamsite
-source bin/activate
-make
+poetry install
+```
+
+Run the script:
+```
+poetry run python jamsite.py
 ```
 
 ### Google API credentials
@@ -45,19 +48,19 @@ if args.sync:
 
 Auth with Google
 ```
-python jamsite.py --sync
+poetry run python jamsite.py --sync
 ```
 (You may see an error that says `This app isn't verified`. Just click on the `Advanced` link towards the bottom of that page, which should expand with some additional text. Click on the `Go to Quickstart (unsafe)` link.)
 
 Build the site
 ```
-python jamsite.py --generate
+poetry run python jamsite.py --generate
 ```
 (You may need to download punkt. Just follow the directions in the error message.)
 
 Serve the site
 ```
-python jamsite.py --serve
+poetry run python jamsite.py --serve
 ```
 
 Check it all out! http://localhost:8000/jam/
