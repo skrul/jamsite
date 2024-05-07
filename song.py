@@ -1,19 +1,30 @@
 class Song(object):
     SPREADSHEET_COLUMNS = {
-        'uuid': 'A',
-        'artist': 'B',
-        'artist_sort': 'C',
-        'title': 'D',
-        'title_sort': 'E',
-        'year': 'F',
-        'download_link': 'G',
-        'view_link': 'H',
-        'modified_time': 'I',
-        'deleted': 'J'
+        "uuid": "A",
+        "artist": "B",
+        "artist_sort": "C",
+        "title": "D",
+        "title_sort": "E",
+        "year": "F",
+        "download_link": "G",
+        "view_link": "H",
+        "modified_time": "I",
+        "deleted": "J",
     }
 
-    def __init__(self, uuid, artist, artist_sort, title, title_sort, year,
-                 download_link, view_link, modified_time, deleted):
+    def __init__(
+        self,
+        uuid,
+        artist,
+        artist_sort,
+        title,
+        title_sort,
+        year,
+        download_link,
+        view_link,
+        modified_time,
+        deleted,
+    ):
         self.uuid = uuid
         self.artist = artist
         self.artist_sort = artist_sort
@@ -27,15 +38,15 @@ class Song(object):
 
     def __repr__(self):
         a = [
-            'uuid: ' + self.uuid,
-            'artist_sort: ' + self.artist_sort,
-            'artist: ' + self.artist,
-            'title: ' + self.title,
-            'title_sort: ' + self.title_sort,
-            'year: ' + self.year,
-            'download_link: ' + self.download_link,
-            'view_link: ' + self.view_link,
-            'modified_time: ' + self.modified_time,
-            'deleted: ' + self.deleted,
+            "uuid: " + self.uuid,
+            "artist_sort: " + str(self.artist_sort),
+            "artist: " + str(self.artist),
+            "title: " + str(self.title),
+            "title_sort: " + str(self.title_sort),
+            "year: " + str(self.year),
+            "download_link: " + str(self.download_link),
+            "view_link: " + str(self.view_link),
+            "modified_time: " + str(self.modified_time),
+            "deleted: " + str(self.deleted),
         ]
-        return ', '.join(a)
+        return ", ".join(a)

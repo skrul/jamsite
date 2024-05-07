@@ -1,9 +1,7 @@
-import sys
 import os
 import google_api
 from song import Song
 import re
-import pprint
 import argparse
 import jinja2
 import pathlib
@@ -16,6 +14,9 @@ from collections import defaultdict
 import hashlib
 from search_indexer import SearchIndexer
 import json
+import dropbox
+import datetime
+import urllib
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = "1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb"
@@ -62,11 +63,42 @@ def get_songs_from_drive(service):
     return songs
 
 
-def read_songs_spreadsheet(service):
+def get_songs_from_dropbox():
+    token = pathlib.Path("dropbox_token.txt").read_text().strip()
+    dbx = dropbox.Dropbox(token)
+    songs = []
+    response = dbx.files_list_folder("/Lyrics + Chords")
+    while True:
+        for entry in response.entries:
+            # Skip folders
+            if isinstance(entry, dropbox.files.FolderMetadata):
+                continue
+            modified = entry.server_modified.replace(tzinfo=datetime.UTC)
+            song = Song(
+                "dbx:" + entry.id,
+                "",
+                None,
+                pathlib.Path(entry.name).stem,
+                None,
+                None,
+                None,
+                f"https://www.dropbox.com/home/{urllib.parse.quote('Lyrics + Chords')}?preview={urllib.parse.quote(entry.name)}",
+                modified.isoformat(),
+                False,
+            )
+            songs.append(song)
+
+        if not response.has_more:
+            break
+        response = dbx.files_list_folder_continue(response.cursor)
+    return songs
+
+
+def read_songs_spreadsheet(service, sheet):
     result = (
         service.spreadsheets()
         .values()
-        .get(spreadsheetId=JAM_SONGS_SPREADSHEET_ID, range="songs")
+        .get(spreadsheetId=JAM_SONGS_SPREADSHEET_ID, range=sheet)
         .execute()
     )
     values = result.get("values")
@@ -82,7 +114,7 @@ def read_songs_spreadsheet(service):
     return songs_by_row
 
 
-def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
+def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
     existing_songs_uuids = {
         existing_songs_by_row[r].uuid: (r, existing_songs_by_row[r])
         for r in existing_songs_by_row
@@ -99,17 +131,23 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
             if existing_song.view_link == "":
                 to_update.append(
                     {
-                        "range": Song.SPREADSHEET_COLUMNS["view_link"] + str(row + 1),
+                        "range": sheet
+                        + "!"
+                        + Song.SPREADSHEET_COLUMNS["view_link"]
+                        + str(row + 1),
                         "values": [[song.view_link]],
                     }
                 )
     for row in existing_songs_by_row:
         existing_song = existing_songs_by_row[row]
-        is_deleted = not existing_song.uuid in drive_songs_uuids
+        is_deleted = existing_song.uuid not in drive_songs_uuids
         if existing_song.deleted != is_deleted:
             to_update.append(
                 {
-                    "range": Song.SPREADSHEET_COLUMNS["deleted"] + str(row + 1),
+                    "range": sheet
+                    + "!"
+                    + Song.SPREADSHEET_COLUMNS["deleted"]
+                    + str(row + 1),
                     "values": [["x" if is_deleted else ""]],
                 }
             )
@@ -135,7 +173,7 @@ def sync_to_spreadsheet(service, drive_songs, existing_songs_by_row):
         .append(
             spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
             valueInputOption="RAW",
-            range="songs!A1",
+            range=f"{sheet}!A1",
             body={"values": values},
         )
         .execute()
@@ -164,8 +202,13 @@ def generate(songs):
 
     static_files = []
     static_file_hashes = {}
-    static_files.extend(copytree(pdir("css"), os.path.join(jam_dir, "css")))
-    static_files.extend(copytree(pdir("js"), os.path.join(jam_dir, "js")))
+    dist_css = os.path.join(jam_dir, "css")
+    copytree(pdir("css"), dist_css, dirs_exist_ok=True)
+    static_files.extend(get_files(dist_css))
+
+    dist_js = os.path.join(jam_dir, "js")
+    copytree(pdir("js"), dist_js, dirs_exist_ok=True)
+    static_files.extend(get_files(dist_js))
 
     si = SearchIndexer()
     for song in songs:
@@ -230,7 +273,7 @@ def get_songs(cache):
             with open(cache_file, "rb") as songs_pickle:
                 return pickle.load(songs_pickle)
     sheets_service = google_api.auth("sheets", "v4")
-    songs_by_row = read_songs_spreadsheet(sheets_service)
+    songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
     songs = list(songs_by_row.values())
     if cache:
         with open(cache_file, "wb") as songs_pickle:
@@ -258,6 +301,14 @@ def pdir(name):
     return os.path.normpath(os.path.join(os.getcwd(), name))
 
 
+def get_files(path):
+    files = []
+    for root, dirs, filenames in os.walk(path):
+        for filename in filenames:
+            files.append(os.path.join(root, filename))
+    return files
+
+
 def get_hash(f_path):
     h = hashlib.new("md5")
     with open(f_path, "rb") as file:
@@ -271,6 +322,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--sync", action="store_true")
+    group.add_argument("--sync-gary", action="store_true")
     group.add_argument("--generate", action="store_true")
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--publish", action="store_true")
@@ -282,8 +334,14 @@ if __name__ == "__main__":
         drive_songs = get_songs_from_drive(drive_service)
 
         sheets_service = google_api.auth("sheets", "v4")
-        existing_songs_by_row = read_songs_spreadsheet(sheets_service)
-        sync_to_spreadsheet(sheets_service, drive_songs, existing_songs_by_row)
+        existing_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
+        sync_to_spreadsheet(sheets_service, "skrul", drive_songs, existing_songs_by_row)
+    if args.sync_gary:
+        dbx_songs = get_songs_from_dropbox()
+
+        sheets_service = google_api.auth("sheets", "v4")
+        existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
+        sync_to_spreadsheet(sheets_service, "gary", dbx_songs, existing_songs_by_row)
     if args.generate:
         songs = get_songs(args.cached)
         generate(songs)
