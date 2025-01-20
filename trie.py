@@ -1,12 +1,15 @@
 from pprint import pprint
 import json
 
+
 class Node:
     def __init__(self):
         self.ids = []
         self.children = {}
+
     def __repr__(self):
-        return ', '.join(str(i) for i in self.ids)
+        return ", ".join(str(i) for i in self.ids)
+
 
 class Trie:
     def __init__(self):
@@ -36,7 +39,7 @@ class Trie:
         for k, node in children.items():
             d_children = {}
             self._to_dict(d_children, node.children)
-            d[k] = { 'i': node.ids, 'c': d_children }
+            d[k] = {"i": node.ids, "c": d_children}
 
     def search(self, s):
         n = self.root
@@ -52,10 +55,11 @@ class Trie:
     def dump(self):
         print(self.root)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     t = Trie()
-    #t.add_doc(1, ['hello', 'word'])
-    #t.add_doc(2, ['world', 'peace'])
-    t.add_doc(1, ['abcd'])
-    t.add_doc(2, ['abdd'])
-    print(t.search('abddd'))
+    # t.add_doc(1, ['hello', 'word'])
+    # t.add_doc(2, ['world', 'peace'])
+    t.add_doc(1, ["abcd"])
+    t.add_doc(2, ["abdd"])
+    print(t.search("abddd"))

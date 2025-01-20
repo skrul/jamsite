@@ -109,7 +109,19 @@ def read_songs_spreadsheet(service, sheet):
         d = defaultdict(lambda: "")
         for i, v in enumerate(value):
             d[i] = v
-        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9] == "x", d[10] == "x")
+        song = Song(
+            d[0],
+            d[1],
+            d[2],
+            d[3],
+            d[4],
+            d[5],
+            d[6],
+            d[7],
+            d[8],
+            d[9] == "x",
+            d[10] == "x",
+        )
         songs_by_row[row] = song
     return songs_by_row
 
@@ -232,7 +244,7 @@ def generate(songs):
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
     songs_by_title = [s for s in songs_by_title if not s.skip]
-    
+
     def render(name):
         decade_list = list(decades.keys())
         decade_list.sort()

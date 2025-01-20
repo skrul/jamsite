@@ -4,6 +4,7 @@ import unidecode
 import re
 import string
 
+
 class SearchIndexer:
     def __init__(self):
         self.t = Trie()
@@ -26,7 +27,7 @@ class SearchIndexer:
         return self.decades
 
     def _tokenize(self, song):
-        s = ' '.join([song.artist, song.title])
+        s = " ".join([song.artist, song.title])
         tokens = []
         for t in WhitespaceTokenizer().tokenize(s):
             t = unidecode.unidecode(t)

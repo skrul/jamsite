@@ -38,6 +38,7 @@ class Song(object):
         self.modified_time = modified_time
         self.deleted = deleted
         self.skip = skip
+
     def __repr__(self):
         a = [
             "uuid: " + self.uuid,
