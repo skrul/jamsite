@@ -10,6 +10,7 @@ class Song(object):
         "view_link": "H",
         "modified_time": "I",
         "deleted": "J",
+        "skip": "K",
     }
 
     def __init__(
@@ -24,6 +25,7 @@ class Song(object):
         view_link,
         modified_time,
         deleted,
+        skip,
     ):
         self.uuid = uuid
         self.artist = artist
@@ -35,7 +37,7 @@ class Song(object):
         self.view_link = view_link
         self.modified_time = modified_time
         self.deleted = deleted
-
+        self.skip = skip
     def __repr__(self):
         a = [
             "uuid: " + self.uuid,
@@ -48,5 +50,6 @@ class Song(object):
             "view_link: " + str(self.view_link),
             "modified_time: " + str(self.modified_time),
             "deleted: " + str(self.deleted),
+            "skip: " + str(self.skip),
         ]
         return ", ".join(a)

@@ -109,7 +109,7 @@ def read_songs_spreadsheet(service, sheet):
         d = defaultdict(lambda: "")
         for i, v in enumerate(value):
             d[i] = v
-        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9] == "x")
+        song = Song(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9] == "x", d[10] == "x")
         songs_by_row[row] = song
     return songs_by_row
 
@@ -212,6 +212,8 @@ def generate(songs):
 
     si = SearchIndexer()
     for song in songs:
+        if song.skip:
+            continue
         si.add_song(song)
     index_str = json.dumps(si.index_as_dict(), separators=(",", ":"))
     id_map_str = json.dumps(si.uuids, separators=(",", ":"))
@@ -229,7 +231,8 @@ def generate(songs):
         static_file_hashes[rel_path] = get_hash(f)
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
-
+    songs_by_title = [s for s in songs_by_title if not s.skip]
+    
     def render(name):
         decade_list = list(decades.keys())
         decade_list.sort()
@@ -274,6 +277,7 @@ def get_songs(cache):
                 return pickle.load(songs_pickle)
     sheets_service = google_api.auth("sheets", "v4")
     songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
+    songs_by_row.update(read_songs_spreadsheet(sheets_service, "gary"))
     songs = list(songs_by_row.values())
     if cache:
         with open(cache_file, "wb") as songs_pickle:
