@@ -1,6 +1,15 @@
 # jamsite
 A searchable song packet directory!
 
+## New stuff (WIP)
+
+docker build --secret type=file,id=google_api_token_pickle,src=token.pickle .
+
+
+
+
+### Old Stuff below
+
 ## Dev Environment Setup
 
 This project is using [poetry](https://python-poetry.org/docs/), see its docs for how to install.
