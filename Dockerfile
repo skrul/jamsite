@@ -26,6 +26,7 @@ COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
 RUN cp -r ./dist/jam/* /usr/share/nginx/html
 
 EXPOSE 80
+EXPOSE 443
 
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
 #ENTRYPOINT ["sleep", "infinity"]
