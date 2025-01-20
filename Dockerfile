@@ -23,7 +23,7 @@ RUN --mount=type=secret,id=google_api_token_pickle \
 # COPY --from=builder /venv /venv
 
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./jamsite/dist/jam /usr/share/nginx/html
+RUN cp -r ./dist/jam/* /usr/share/nginx/html
 
 EXPOSE 80
 
