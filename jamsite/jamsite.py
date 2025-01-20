@@ -1,6 +1,6 @@
 import os
-import google_api
-from song import Song
+from . import google_api
+from jamsite.song import Song
 import re
 import argparse
 import jinja2
@@ -12,7 +12,7 @@ from shutil import copytree
 import pickle
 from collections import defaultdict
 import hashlib
-from search_indexer import SearchIndexer
+from .search_indexer import SearchIndexer
 import json
 import dropbox
 import datetime
@@ -204,7 +204,7 @@ def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
 
 def generate(songs):
     env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(pdir("templates")),
+        loader=jinja2.FileSystemLoader(pdir("jamsite/templates")),
         autoescape=jinja2.select_autoescape(["html"]),
     )
 
@@ -215,11 +215,11 @@ def generate(songs):
     static_files = []
     static_file_hashes = {}
     dist_css = os.path.join(jam_dir, "css")
-    copytree(pdir("css"), dist_css, dirs_exist_ok=True)
+    copytree(pdir("jamsite/css"), dist_css, dirs_exist_ok=True)
     static_files.extend(get_files(dist_css))
 
     dist_js = os.path.join(jam_dir, "js")
-    copytree(pdir("js"), dist_js, dirs_exist_ok=True)
+    copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
     static_files.extend(get_files(dist_js))
 
     si = SearchIndexer()
@@ -334,7 +334,7 @@ def get_hash(f_path):
     return digest
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--sync", action="store_true")

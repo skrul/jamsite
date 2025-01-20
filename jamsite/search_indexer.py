@@ -1,4 +1,4 @@
-from trie import Trie
+from .trie import Trie
 from nltk.tokenize import WhitespaceTokenizer
 import unidecode
 import re
