@@ -1,8 +1,28 @@
 services:
   jamsite:
-    build: .
+    build: 
+      context: .
+      secrets:
+        - google_api_token_pickle
+      args:
+        - ENVIRONMENT=development
+    volumes:
+      - /Volumes/songs/data:/data/songs
+      - ./token.pickle:/secrets/token.pickle
+      - ./dropbox_token.txt:/secrets/dropbox_token.txt
+      # Note that we don't use a directory here because these files are symlinks.
+      - /etc/letsencrypt/live/skrul.com/fullchain.pem:/secrets/fullchain.pem
+      - /etc/letsencrypt/live/skrul.com/privkey.pem:/secrets/privkey.pem
     ports:
       - "80:80"
+      - "443:443"
     environment:
-      - X=<mqtt host>>
+      - ENVIRONMENT=development
+      - SONGS_DIR=/data/songs
+      - DROPBOX_TOKEN_FILE=/secrets/dropbox_token.txt
+      - GOOGLE_API_TOKEN_PICKLE_FILE=/secrets/token.pickle
     restart: unless-stopped
+
+secrets:
+  google_api_token_pickle:
+    file: token.pickle

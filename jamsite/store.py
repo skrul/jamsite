@@ -156,7 +156,6 @@ def download_songs_from_dropbox(dbx, songs, dest):
                     print(f"Song: {song.hash}")
 
         if should_download:
-            count_downloaded += 1
             file_id = song.uuid.split(":", 1)[1]
             print(f"Downloading {song.title} {file_id}")
 
@@ -164,8 +163,10 @@ def download_songs_from_dropbox(dbx, songs, dest):
             # Extract file name from view_link
             extension = song.view_link.split(".")[-1]
             if extension == "pdf":
+                count_downloaded += 1
                 dbx.files_download_to_file(song_path, file_id)
             elif extension in ["doc", "docx", "rtf", "txt"]:
+                count_downloaded += 1
                 with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                     dbx.files_download_to_file(
                         temp_file.name + "." + extension, file_id

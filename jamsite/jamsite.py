@@ -268,7 +268,8 @@ def get_hash(f_path):
 
 def get_dbx():
     # Refresh this token https://www.dropbox.com/developers/apps/info/prsqycfo9z22u99
-    token = pathlib.Path("dropbox_token.txt").read_text().strip()
+    token_file = os.getenv("DROPBOX_TOKEN_FILE", "dropbox_token.txt")
+    token = pathlib.Path(token_file).read_text().strip()
     dbx = dropbox.Dropbox(token)
     return dbx
 
@@ -305,15 +306,17 @@ def main():
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
         sync_to_spreadsheet(sheets_service, "gary", dbx_songs, existing_songs_by_row)
     if args.download:
-        if not args.songs_dir:
-            parser.error("--songs-dir is required when using --download")
+        songs_dir = os.getenv("SONGS_DIR") or args.songs_dir
+        if not songs_dir:
+            parser.error("--songs-dir or SONGS_DIR environment variable is required when using --download")
+        print(f"Downloading songs to {songs_dir}")
         drive_service = get_drive()
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
-        store.download_songs_from_drive(drive_service, drive_songs, args.songs_dir)
+        store.download_songs_from_drive(drive_service, drive_songs, songs_dir)
 
         dbx = get_dbx()
         dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
-        store.download_songs_from_dropbox(dbx, dbx_songs, args.songs_dir)
+        store.download_songs_from_dropbox(dbx, dbx_songs, songs_dir)
     if args.generate:
         songs = get_songs(args.cached)
         generate(songs)
