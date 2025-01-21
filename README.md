@@ -5,6 +5,7 @@ A searchable song packet directory!
 
 docker build --secret type=file,id=google_api_token_pickle,src=token.pickle .
 
+certbot certonly -manual -d "*.skrul.com" -d skrul.com
 
 
 

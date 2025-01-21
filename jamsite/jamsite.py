@@ -15,83 +15,15 @@ import hashlib
 from .search_indexer import SearchIndexer
 import json
 import dropbox
-import datetime
-import urllib
+from . import store
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = "1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb"
 JAM_SONGS_SPREADSHEET_ID = "1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag"
+GARY_SONGS_FOLDER_PATH = "/Lyrics + Chords"
 S3_BUCKET = "skrul.com"
 
 CONTENT_TYPES = {"html": "text/html", "css": "text/css", "js": "application/javascript"}
-
-
-def get_songs_from_drive(service):
-    page_token = None
-    songs = []
-    while True:
-        response = (
-            service.files()
-            .list(
-                q=f"'{JAM_SONGS_FOLDER_ID}' in parents and trashed = false",
-                fields="nextPageToken, files(id, name, webContentLink, webViewLink, modifiedTime)",
-                pageToken=page_token,
-            )
-            .execute()
-        )
-        for file in response.get("files", []):
-            match = re.match(r"(.*) [-‐] (.*) \((.*)\)\.pdf", file.get("name"))
-            if match is not None:
-                song = Song(
-                    "gd:" + file.get("id"),
-                    match.group(2),
-                    None,
-                    match.group(1),
-                    None,
-                    match.group(3),
-                    file.get("webContentLink"),
-                    file.get("webViewLink"),
-                    file.get("modifiedTime"),
-                    False,
-                )
-                songs.append(song)
-            else:
-                print("Skipping " + file.get("name"))
-            page_token = response.get("nextPageToken", None)
-        if page_token is None:
-            break
-    return songs
-
-
-def get_songs_from_dropbox():
-    token = pathlib.Path("dropbox_token.txt").read_text().strip()
-    dbx = dropbox.Dropbox(token)
-    songs = []
-    response = dbx.files_list_folder("/Lyrics + Chords")
-    while True:
-        for entry in response.entries:
-            # Skip folders
-            if isinstance(entry, dropbox.files.FolderMetadata):
-                continue
-            modified = entry.server_modified.replace(tzinfo=datetime.UTC)
-            song = Song(
-                "dbx:" + entry.id,
-                "",
-                None,
-                pathlib.Path(entry.name).stem,
-                None,
-                None,
-                None,
-                f"https://www.dropbox.com/home/{urllib.parse.quote('Lyrics + Chords')}?preview={urllib.parse.quote(entry.name)}",
-                modified.isoformat(),
-                False,
-            )
-            songs.append(song)
-
-        if not response.has_more:
-            break
-        response = dbx.files_list_folder_continue(response.cursor)
-    return songs
 
 
 def read_songs_spreadsheet(service, sheet):
@@ -334,6 +266,17 @@ def get_hash(f_path):
     return digest
 
 
+def get_dbx():
+    # Refresh this token https://www.dropbox.com/developers/apps/info/prsqycfo9z22u99
+    token = pathlib.Path("dropbox_token.txt").read_text().strip()
+    dbx = dropbox.Dropbox(token)
+    return dbx
+
+
+def get_drive():
+    return google_api.auth("drive", "v3")
+
+
 def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
@@ -342,22 +285,35 @@ def main():
     group.add_argument("--generate", action="store_true")
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--download", action="store_true")
     parser.add_argument("--aws-profile")
+    parser.add_argument("--songs-dir")
     parser.add_argument("--cached", action="store_true")
     args = parser.parse_args()
     if args.sync:
-        drive_service = google_api.auth("drive", "v3")
-        drive_songs = get_songs_from_drive(drive_service)
+        drive_service = get_drive()
+        drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
 
         sheets_service = google_api.auth("sheets", "v4")
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
         sync_to_spreadsheet(sheets_service, "skrul", drive_songs, existing_songs_by_row)
     if args.sync_gary:
-        dbx_songs = get_songs_from_dropbox()
+        dbx = get_dbx()
+        dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
 
         sheets_service = google_api.auth("sheets", "v4")
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
         sync_to_spreadsheet(sheets_service, "gary", dbx_songs, existing_songs_by_row)
+    if args.download:
+        if not args.songs_dir:
+            parser.error("--songs-dir is required when using --download")
+        drive_service = get_drive()
+        drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
+        store.download_songs_from_drive(drive_service, drive_songs, args.songs_dir)
+
+        dbx = get_dbx()
+        dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
+        store.download_songs_from_dropbox(dbx, dbx_songs, args.songs_dir)
     if args.generate:
         songs = get_songs(args.cached)
         generate(songs)

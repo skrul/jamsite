@@ -26,6 +26,7 @@ class Song(object):
         modified_time,
         deleted,
         skip,
+        hash=None,
     ):
         self.uuid = uuid
         self.artist = artist
@@ -38,6 +39,7 @@ class Song(object):
         self.modified_time = modified_time
         self.deleted = deleted
         self.skip = skip
+        self.hash = hash
 
     def __repr__(self):
         a = [
@@ -52,5 +54,6 @@ class Song(object):
             "modified_time: " + str(self.modified_time),
             "deleted: " + str(self.deleted),
             "skip: " + str(self.skip),
+            "hash: " + str(self.hash),
         ]
         return ", ".join(a)
