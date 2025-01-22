@@ -221,9 +221,11 @@ def get_songs(cache):
             with open(cache_file, "rb") as songs_pickle:
                 return pickle.load(songs_pickle)
     sheets_service = google_api.auth("sheets", "v4")
-    songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-    songs_by_row.update(read_songs_spreadsheet(sheets_service, "gary"))
-    songs = list(songs_by_row.values())
+    skrul_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
+    print(f"skrul song count: {len(skrul_songs_by_row)}")
+    gary_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
+    print(f"gary song count: {len(gary_songs_by_row)}")
+    songs = list(skrul_songs_by_row.values()) + list(gary_songs_by_row.values())
     if cache:
         with open(cache_file, "wb") as songs_pickle:
             pickle.dump(songs, songs_pickle)
