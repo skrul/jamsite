@@ -49,7 +49,7 @@
     <table id="songs" class="u-full-width">
       <tbody>
       {% for song in songs %}
-      <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf" data-view-link="/songs/{{ song.uuid }}.pdf">
+      <tr id="{{ song.uuid }}" data-download-link="/viewer.html?uuid={{ song.uuid }}" data-view-link="/viewer.html?uuid={{ song.uuid }}">
         <td class="song-title" data-sort="{{ song.title_sort }}">{{ song.title }}</td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>

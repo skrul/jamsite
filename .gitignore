@@ -8,4 +8,5 @@ lib/
 pyvenv.cfg
 bin/
 dropbox_token.txt
+node_modules
 

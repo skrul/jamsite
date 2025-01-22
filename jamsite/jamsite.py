@@ -140,7 +140,7 @@ def generate(songs):
         autoescape=jinja2.select_autoescape(["html"]),
     )
 
-    jam_dir = pdir("dist/jam")
+    jam_dir = pdir("dist")
     if not os.path.exists(jam_dir):
         os.makedirs(jam_dir)
 
@@ -189,6 +189,7 @@ def generate(songs):
 
     render("index.html")
     render("jamulus.html")
+    render("viewer.html")
 
 
 def publish(aws_profile):
@@ -229,19 +230,54 @@ def get_songs(cache):
     return songs
 
 
+class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, songs_dir=None, **kwargs):
+        self.songs_dir = songs_dir
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self):
+        if self.path.startswith('/songs/'):
+            relative_path = self.path[7:]  # Remove '/songs/'
+            file_path = os.path.join(self.songs_dir, relative_path)
+            
+            try:
+                with open(file_path, 'rb') as f:
+                    self.send_response(200)
+                    # Set content type for PDF files
+                    if file_path.lower().endswith('.pdf'):
+                        self.send_header('Content-Type', 'application/pdf')
+                    else:
+                        self.send_header('Content-Type', 'application/octet-stream')
+                    self.end_headers()
+                    self.wfile.write(f.read())
+            except FileNotFoundError:
+                self.send_error(404, "File not found")
+            except Exception as e:
+                self.send_error(500, str(e))
+        else:
+            # Handle all other requests using the default static file handler
+            super().do_GET()
+
+
 def serve():
     os.chdir(pdir("dist"))
-    Handler = http.server.SimpleHTTPRequestHandler
-    m = Handler.extensions_map
+    songs_dir = os.getenv("SONGS_DIR", "/Volumes/songs/data")
+    
+    # Create handler with songs directory
+    handler = lambda *args, **kwargs: JamSiteHandler(*args, songs_dir=songs_dir, **kwargs)
+    
+    # Set up content type mappings
+    m = handler.extensions_map = http.server.SimpleHTTPRequestHandler.extensions_map.copy()
     m[""] = "text/plain"
     m.update(dict([(k, v + ";charset=UTF-8") for k, v in m.items()]))
 
-    server = socketserver.TCPServer(("", PORT), Handler, bind_and_activate=False)
+    server = socketserver.TCPServer(("", PORT), handler, bind_and_activate=False)
     server.allow_reuse_address = True
     server.server_bind()
     server.server_activate()
     print("serving at port", PORT)
-    print("http://localhost:8000/jam/")
+    print("http://localhost:8000/")
+    print(f"Serving songs from: {songs_dir}")
     server.serve_forever()
 
 
