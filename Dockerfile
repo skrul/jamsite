@@ -9,7 +9,8 @@ RUN apt-get update && \
     python3 \
     pipx \
     nginx \
-    python-is-python3
+    python-is-python3 \
+    npm
 
 ENV PATH="/root/.local/bin:${PATH}"
 ENV SONGS_DIR=${SONGS_DIR}
@@ -27,12 +28,18 @@ RUN poetry bundle venv --python=/usr/bin/python3 --only=main /venv
 RUN --mount=type=secret,id=google_api_token_pickle \
   GOOGLE_API_TOKEN_PICKLE_FILE=/run/secrets/google_api_token_pickle \
   /venv/bin/jamsite --generate
-# FROM debian:12-slim
+
+COPY webpack.config.js package.json package-lock.json .
+COPY src/ src/
+RUN npm install
+RUN npx webpack
+
+  # FROM debian:12-slim
 # COPY --from=builder /venv /venv
 
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
 COPY ./nginx/${ENVIRONMENT}.conf /etc/nginx/conf.d/server.conf
-RUN cp -r ./dist/jam/* /usr/share/nginx/html
+RUN cp -r ./dist/* /usr/share/nginx/html
 
 EXPOSE 80
 EXPOSE 443
