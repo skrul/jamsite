@@ -188,8 +188,6 @@ def generate(songs):
         ).dump(os.path.join(jam_dir, name))
 
     render("index.html")
-    render("jamulus.html")
-    render("viewer.html")
 
 
 def publish(aws_profile):

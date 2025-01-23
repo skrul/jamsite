@@ -9,8 +9,7 @@ RUN apt-get update && \
     python3 \
     pipx \
     nginx \
-    python-is-python3 \
-    npm
+    python-is-python3
 
 ENV PATH="/root/.local/bin:${PATH}"
 ENV SONGS_DIR=${SONGS_DIR}
@@ -29,10 +28,10 @@ RUN --mount=type=secret,id=google_api_token_pickle \
   GOOGLE_API_TOKEN_PICKLE_FILE=/run/secrets/google_api_token_pickle \
   /venv/bin/jamsite --generate
 
-COPY webpack.config.js package.json package-lock.json .
-COPY src/ src/
-RUN npm install
-RUN npx webpack
+# COPY webpack.config.js package.json package-lock.json .
+# COPY src/ src/
+# RUN npm install
+# RUN npx webpack
 
   # FROM debian:12-slim
 # COPY --from=builder /venv /venv
