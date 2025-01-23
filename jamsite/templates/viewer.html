@@ -1,11 +1,83 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Getting Started</title>
-    <script src="js/viewer.bundle.js"></script>
+<html dir="ltr" mozdisallowselectionprint>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="css/viewer.css">
+  <style>
+    body {
+      background-color: #808080;
+      margin: 0;
+      padding: 0;
+    }
+    #viewerContainer {
+      overflow: auto;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script>
+//     alert("1")
+// function checkBrowserCompatibility() {
+//     try {
+//         // Check Chrome version
+//         const userAgent = navigator.userAgent;
+//         const chromeMatch = userAgent.match(/Chrome\/(\d+)/);
+//         alert(userAgent);
+//         if (chromeMatch) {
+//             const chromeVersion = parseInt(chromeMatch[1], 10);
+//             if (chromeVersion < 100) {
+//                 console.error('Chrome version too old:', chromeVersion);
+//                 return false;
+//             }
+//         }
+
+//         // Check for essential features
+//         const features = [
+//             'Promise' in window,
+//             'ArrayBuffer' in window,
+//             'Uint8Array' in window,
+//             'TextDecoder' in window,
+//             'fetch' in window,
+//             // Check if canvas can handle WebGL or 2D context
+//             (() => {
+//                 const canvas = document.createElement('canvas');
+//                 return !!(canvas.getContext('2d') || canvas.getContext('webgl'));
+//             })()
+//         ];
+
+//         return features.every(feature => feature === true);
+//     } catch (e) {
+//         alert(e)
+//         console.error('Browser compatibility check failed:', e);
+//         return false;
+//     }
+// }
+// alert("2")
+// try {
+//     alert(checkBrowserCompatibility());
+//     if (!checkBrowserCompatibility()) {
+//         alert("3");
+//         const urlParams = new URLSearchParams(window.location.search);
+//         const uuid = urlParams.get('uuid');
+//         if (!uuid) {
+//             throw new Error('UUID parameter is required');
+//         }
+//         const pdfPath = "/songs/" + uuid + ".pdf";
+//             window.location.href = pdfPath;
+//     }
+// } catch (e) {
+//     alert(e);
+// }
+</script>
 </head>
-  <body>
-    <canvas id="theCanvas"></canvas>
-  </body>
+
+<body tabindex="1">
+  <div id="viewerContainer">
+    <div id="viewer" class="pdfViewer"></div>
+  </div>
+
+  <script src="js/viewer.bundle.js" type="module"></script>
+</body>
 </html>
