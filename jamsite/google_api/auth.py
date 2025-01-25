@@ -12,13 +12,13 @@ SCOPES = [
 ]
 
 
-def auth(service_name, version):
+def auth(service_name, version, force_reauth=False):
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
     token_file = os.environ.get('GOOGLE_API_TOKEN_PICKLE_FILE', 'token.pickle')
-    if os.path.exists(token_file):
+    if not force_reauth and os.path.exists(token_file):
         with open(token_file, "rb") as token:
             creds = pickle.load(token)
 

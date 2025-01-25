@@ -310,8 +310,8 @@ def get_dbx():
     return dbx
 
 
-def get_drive():
-    return google_api.auth("drive", "v3")
+def get_drive(force_reauth=False):
+    return google_api.auth("drive", "v3", force_reauth=force_reauth)
 
 
 def main():
@@ -324,14 +324,15 @@ def main():
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--download", action="store_true")
     parser.add_argument("--aws-profile")
+    parser.add_argument("--force-google-reauth", action="store_true")
     parser.add_argument("--songs-dir")
     parser.add_argument("--cached", action="store_true")
     args = parser.parse_args()
     if args.sync:
-        drive_service = get_drive()
+        drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
 
-        sheets_service = google_api.auth("sheets", "v4")
+        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
         sync_to_spreadsheet(sheets_service, "skrul", drive_songs, existing_songs_by_row)
     if args.sync_gary:
@@ -346,7 +347,7 @@ def main():
         if not songs_dir:
             parser.error("--songs-dir or SONGS_DIR environment variable is required when using --download")
         print(f"Downloading songs to {songs_dir}")
-        drive_service = get_drive()
+        drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
         store.download_songs_from_drive(drive_service, drive_songs, songs_dir)
 
