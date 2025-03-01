@@ -195,7 +195,7 @@ def download_songs_from_dropbox(dbx, songs, dest):
 
 def convert_to_pdf(input_path, output_path):
     print(f"Converting {input_path} to {output_path}")
-    with GotenbergClient("http://localhost:3000") as client:
+    with GotenbergClient("http://gotenberg:3000") as client:
         with client.libre_office.to_pdf() as route:
             response = route.convert(Path(input_path)).run()
             response.to_file(Path(output_path))
