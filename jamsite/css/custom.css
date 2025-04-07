@@ -27,6 +27,8 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 #searchFilter {
   background: #fff;
   text-align: center;
+  padding: 5px 0;
+  margin-bottom: 10px;
 }
 
 #searchFilter button {
@@ -34,15 +36,17 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   text-transform: lowercase;
   height: 30px;
   line-height: 30px;
+  margin: 2px;
 }
 
 @media (min-width: 300px) {
   .navbar-top { width: 90%; }
-  #songs { margin-top: 20rem; }
+  #songs { margin-top: 22rem; }
 }
 
 @media (min-width: 400px) {
   .navbar-top { width: inherit; }
+  #songs { margin-top: 18rem; }
 }
 
 @media (min-width: 435px) {
@@ -52,7 +56,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 @media (min-width: 550px) {
   .column.sort { width: 5rem; }
   .columns.search-col { width: 55%; }
-  #songs { margin-top: 10rem; }
+  #songs { margin-top: 12rem; }
 }
 
 @media (min-width: 750px) {
@@ -64,6 +68,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   .song-title:hover {
     text-decoration: underline;
   }
+  #songs { margin-top: 10rem; }
 }
 
 @media (min-width: 1200px) {
@@ -76,12 +81,14 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 .navbar-top {
   display: block;
   margin: 0 auto;
-  height: 5rem;
+  height: auto;
+  min-height: 5rem;
   background: #fff;
   z-index: 99;
   position: fixed;
   top: 0;
   padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .navbar-top > .column {
@@ -330,5 +337,12 @@ input[type=search]::-webkit-search-cancel-button {
   .qr-modal-content {
     width: 90%;
     margin: 20% auto;
+  }
+}
+
+@media (min-width: 550px) {
+  .navbar-top {
+    height: 5rem;
+    padding-bottom: 0;
   }
 }
