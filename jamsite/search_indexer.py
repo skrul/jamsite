@@ -13,7 +13,16 @@ class SearchIndexer:
 
     def add_song(self, song):
         tokens = self._tokenize(song)
-        decade = song.year[:-1] + "0s"
+        # Extract the year and determine the decade
+        year = int(song.year) if song.year and song.year.isdigit() else 0
+        
+        # Group all years from 1800-1899 under "1800"
+        if 1800 <= year < 1900:
+            decade = "1800s"
+        else:
+            # For 1900 and later, use the standard decade format (e.g., "1900s", "1910s")
+            decade = str(year // 10 * 10) + "s"
+        
         self.uuids.append(song.uuid)
         self.t.add_doc(len(self.uuids) - 1, tokens)
         if decade not in self.decades.keys():

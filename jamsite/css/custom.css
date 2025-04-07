@@ -41,12 +41,12 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
 
 @media (min-width: 300px) {
   .navbar-top { width: 90%; }
-  #songs { margin-top: 22rem; }
+  #songs { margin-top: 44rem; }
 }
 
 @media (min-width: 400px) {
   .navbar-top { width: inherit; }
-  #songs { margin-top: 18rem; }
+  #songs { margin-top: 24rem; }
 }
 
 @media (min-width: 435px) {
@@ -337,6 +337,53 @@ input[type=search]::-webkit-search-cancel-button {
   .qr-modal-content {
     width: 90%;
     margin: 20% auto;
+  }
+  
+  /* Mobile table styles */
+  #songs {
+    font-size: 12px;
+    width: 100%;
+  }
+  
+  #songs td {
+    padding: 4px 2px !important;
+  }
+  
+  #songs td:first-child {
+    padding-left: 2px !important;
+  }
+  
+  #songs td:last-child {
+    padding-right: 2px !important;
+  }
+  
+  /* Make the song actions column narrower */
+  .song-actions-cell {
+    width: 20px;
+    padding: 0 !important;
+  }
+  
+  /* Remove container padding completely for mobile */
+  .container {
+    padding: 0;
+    width: 100%;
+  }
+  
+  /* Adjust navbar for mobile */
+  .navbar-top {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  
+  /* Make search input more compact */
+  #search {
+    padding: 0 2px;
+  }
+  
+  /* Make the random button smaller */
+  #random {
+    padding: 0 4px;
+    font-size: 12px;
   }
 }
 
