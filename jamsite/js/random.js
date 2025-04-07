@@ -37,7 +37,15 @@
 
       songElements = document.getElementById(randomSongUuid).children;
       // put the song name in the search string so it can be cleared
-      document.getElementById('search').value = songElements[0].textContent;
+      var searchInput = document.getElementById('search');
+      searchInput.value = songElements[0].textContent;
+      
+      // Show the clear button
+      var clearButton = document.getElementById('clear-search');
+      if (clearButton) {
+        clearButton.style.display = 'block';
+      }
+      
       this.songTable.showRows([randomSongUuid]);
     }
   }

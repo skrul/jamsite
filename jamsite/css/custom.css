@@ -39,6 +39,31 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   margin: 2px;
 }
 
+/* Search container and clear button */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.clear-search-button {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 5px;
+  display: none; /* Hidden by default, shown when input has text */
+}
+
+.clear-search-button:hover {
+  color: #333;
+}
+
 @media (min-width: 300px) {
   .navbar-top { width: 90%; }
   #songs { margin-top: 44rem; }
