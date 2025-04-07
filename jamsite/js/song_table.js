@@ -17,6 +17,17 @@
       for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
         this.rows.push(this.table.tBodies[0].rows[i]);
       }
+      
+      // Clear any selected rows when the page is loaded
+      // This fixes the issue with rows remaining highlighted after using the back button
+      this.clearRowSelection();
+      
+      // Also clear selection when the page becomes visible again (e.g., when returning from PDF)
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          that.clearRowSelection();
+        }
+      });
 
       table.addEventListener(
         'touchstart',
