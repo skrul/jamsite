@@ -20,6 +20,9 @@
   <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
   <script src="js/random.js?v={{ static_file_hashes['js/random.js'] }}"></script>
   <script src="js/sort_popover.js?v={{ static_file_hashes['js/sort_popover.js'] }}"></script>
+  <script src="js/song_actions.js?v={{ static_file_hashes['js/song_actions.js'] }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="js/qr_code.js?v={{ static_file_hashes['js/qr_code.js'] }}"></script>
 </head>
 <body>
   <div class="container">
@@ -53,6 +56,14 @@
         <td class="song-title" data-sort="{{ song.title_sort }}">{{ song.title }}</td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>
+        <td class="song-actions-cell">
+          <div class="song-actions">
+            <span class="song-actions-toggle">⋮</span>
+            <div class="song-actions-popover">
+              <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}">Share via QR code</a>
+            </div>
+          </div>
+        </td>
       </tr>
       {% endfor %}
     </table>
@@ -78,6 +89,7 @@
     document.getElementById("sort-popover-body"),
     st
   );
+  var sa = new SongActions();
 </script>
 </body>
 </html>

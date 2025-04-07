@@ -21,6 +21,11 @@
       table.addEventListener(
         'touchstart',
         function(e) {
+          // Check if the touch is on the song action button or its popover
+          if (e.target.closest('.song-actions')) {
+            return; // Don't trigger the touch behavior
+          }
+          
           var tr = that._getTr(e);
           that.touchTr = tr;
           that.touchTimer = setTimeout(function() { that.touchTimerFired(); }, 200);
@@ -31,6 +36,11 @@
       table.addEventListener(
         'touchend',
         function(e) {
+          // Check if the touch is on the song action button or its popover
+          if (e.target.closest('.song-actions')) {
+            return; // Don't trigger the touch behavior
+          }
+          
           var tr = that.touchTr;
           if (tr) {
             tr.classList.add('selected');
@@ -60,6 +70,11 @@
       table.addEventListener(
         'click',
         function(e) {
+          // Check if the click is on the song action button or its popover
+          if (e.target.closest('.song-actions')) {
+            return; // Don't trigger the row click behavior
+          }
+          
           var tr = that._getTr(e);
           if (!mobileAndTabletcheck()) {
             window.open(tr.getAttribute('data-view-link'), '_blank');
@@ -161,7 +176,12 @@
     },
 
     _getTr: function(e) {
-      return e.target.parentElement;
+      // If the target is a cell, return its parent (the row)
+      if (e.target.tagName === 'TD') {
+        return e.target.parentElement;
+      }
+      // Otherwise, assume it's already a row
+      return e.target;
     },
 
     _getUuidToRow: function() {
