@@ -1,6 +1,88 @@
+/* Overrides for Skeleton CSS */
+
+button, input {
+  margin-bottom: 0;
+}
+.container {
+  width: 100%;
+  padding: 0;
+}
+
+/* Colors */
+
 nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   color: #000000;
   text-decoration: none;
+}
+
+/* Navbar */
+
+.navbar {
+  display: block;
+  margin: 0 auto;
+  height: auto;
+  min-height: 5rem;
+  background: #fff;
+  z-index: 99;
+  position: fixed;
+  top: 0;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 100%;
+}
+
+.navbar-top {
+  display: flex;
+  width: 100%;
+}
+
+.navbar-menu, .navbar-random {
+  width: 40px;
+  color: white;
+}
+
+.navbar-search {
+  flex: 1;  /* This makes the middle div expand */
+}
+
+.navbar-bottom {
+  width: 100%;
+}
+
+.decade-filter {
+  width: 100%;
+  color: white;
+  background: #fff;
+  text-align: center;
+  padding: 5px 0;
+}
+
+.decade-filter button {
+  padding: 0;
+  text-transform: lowercase;
+  height: 30px;
+  line-height: 30px;
+  margin: 0px;
+}
+
+.navbar-content {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+#search {
+  width: 100%;
+}
+
+#songs {
+  width: 100%;
+  margin-top: 10rem;
 }
 
 #songs table a, table a:link, table a:hover, table a:active, table a:visited {
@@ -23,128 +105,22 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background-color: #ff5a5f !important;
 }
 
+.song-artist-sub-text {
+  display: none;
+}
+
 #random { padding: 0 10px;}
-#searchFilter {
-  background: #fff;
-  text-align: center;
-  padding: 5px 0;
-  margin-bottom: 10px;
-}
 
-#searchFilter button {
-  padding: 0;
-  text-transform: lowercase;
-  height: 30px;
-  line-height: 30px;
-  margin: 2px;
-}
-
-/* Search container and clear button */
-.search-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.clear-search-button {
-  position: absolute;
-  right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
+.icon-button {
   background: none;
   border: none;
-  font-size: 18px;
-  color: #999;
   cursor: pointer;
-  padding: 0 5px;
-  display: none; /* Hidden by default, shown when input has text */
+  font-size: 2rem;
+  padding: 0.5rem;
 }
 
-.clear-search-button:hover {
-  color: #333;
-}
-
-@media (min-width: 300px) {
-  .navbar-top { width: 90%; }
-  #songs { margin-top: 44rem; }
-}
-
-@media (min-width: 400px) {
-  .navbar-top { width: inherit; }
-  #songs { margin-top: 24rem; }
-}
-
-@media (min-width: 435px) {
-  #songs { margin-top: 16rem; }
-}
-
-@media (min-width: 550px) {
-  .column.sort { width: 5rem; }
-  .columns.search-col { width: 55%; }
-  #songs { margin-top: 12rem; }
-}
-
-@media (min-width: 750px) {
-  .columns.search-col { width: 65.33333%; }
-  .song-title {
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .song-title:hover {
-    text-decoration: underline;
-  }
-  #songs { margin-top: 10rem; }
-}
-
-@media (min-width: 1200px) {
-  .navbar-top {
-    width: 960px;
-  }
-}
-
-/* Navbar */
-.navbar-top {
-  display: block;
-  margin: 0 auto;
-  height: auto;
-  min-height: 5rem;
-  background: #fff;
-  z-index: 99;
-  position: fixed;
-  top: 0;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-
-.navbar-top > .column {
-  border: none;
-  padding-left: 0;
-  padding-right: 0;
-  white-space: nowrap;
-  background: #fff;
-}
-
-.navbar-list {
-  list-style: none;
-  margin-bottom: 0;
-}
-.navbar-item {
-  position: relative;
-  float: left;
-  margin-bottom: 0;
-}
-.navbar-link {
-  text-transform: uppercase;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .2rem;
-  margin-right: 35px;
-  text-decoration: none;
-  line-height: 6.5rem;
-  color: #222;
-}
-.navbar-link.active {
-    color: #33C3F0;
+.icon-button:hover {
+  opacity: 0.8;
 }
 
 #sort-popover-toggle {
@@ -154,12 +130,6 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   float: left;
   margin-top: .5rem;
   font-size: 1.5rem;
-}
-
-#search {
-  vertical-align: middle;
-  margin-bottom: 0px;
-  width: 100%;
 }
 
 .navbar-link.selected {
@@ -235,8 +205,13 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
     border-bottom-color: #33C3F0; }
 
 
-input[type=search]::-webkit-search-cancel-button {
-    -webkit-appearance: searchfield-cancel-button;
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  margin-left: .4em;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23777'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>");
+  cursor: pointer;
 }
 
 /* Song Action Popover */
@@ -363,58 +338,49 @@ input[type=search]::-webkit-search-cancel-button {
     width: 90%;
     margin: 20% auto;
   }
-  
-  /* Mobile table styles */
-  #songs {
-    font-size: 12px;
-    width: 100%;
-  }
-  
-  #songs td {
-    padding: 4px 2px !important;
-  }
-  
-  #songs td:first-child {
-    padding-left: 2px !important;
-  }
-  
-  #songs td:last-child {
-    padding-right: 2px !important;
-  }
-  
-  /* Make the song actions column narrower */
-  .song-actions-cell {
-    width: 20px;
-    padding: 0 !important;
-  }
-  
-  /* Remove container padding completely for mobile */
+}
+
+/* Wide Devices */
+
+@media (min-width: 550px) {
   .container {
-    padding: 0;
-    width: 100%;
+    width: 80%;
   }
-  
-  /* Adjust navbar for mobile */
+
+  .navbar {
+    width: 80%;
+  }
+
   .navbar-top {
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  
-  /* Make search input more compact */
-  #search {
-    padding: 0 2px;
-  }
-  
-  /* Make the random button smaller */
-  #random {
-    padding: 0 4px;
-    font-size: 12px;
+    width: 100%;
   }
 }
 
-@media (min-width: 550px) {
-  .navbar-top {
-    height: 5rem;
-    padding-bottom: 0;
+@media (min-width: 1200px) {
+  .container {
+    width: 960px;
+  }
+
+  .navbar {
+    width: 960px;
+  }
+}
+
+/* Hide artist column on narrow screens */
+@media (max-width: 550px) {
+  #songs tr td:nth-child(2) {
+    display: none;
+  }
+  .song-title-text {
+    font-size: 1.5em;
+  }
+
+  .song-artist-sub-text {
+    display: block;
+    font-size: 0.9em;
+    color: #666;
+    padding-left: 0;
+    padding-top: 0;
+    margin-top: -5px;
   }
 }

@@ -180,6 +180,10 @@ def generate(songs):
     def render(name):
         decade_list = list(decades.keys())
         decade_list.sort()
+        # move the decane named "old af" to the front.
+        if "old af" in decade_list:
+            decade_list.remove("old af")
+            decade_list.insert(0, "old af")
         template = env.get_template(name)
         template.stream(
             songs=songs_by_title,

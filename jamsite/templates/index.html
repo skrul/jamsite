@@ -14,49 +14,73 @@
   <link rel="stylesheet" href="css/normalize.css?v={{ static_file_hashes['css/normalize.css'] }}">
   <link rel="stylesheet" href="css/skeleton.css?v={{ static_file_hashes['css/skeleton.css'] }}">
   <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
+  <link rel="stylesheet" href="css/menu.css?v={{ static_file_hashes['css/menu.css'] }}" type="text/css">
   <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
   <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
   <script src="js/filter.js?v={{ static_file_hashes['js/filter.js'] }}"></script>
   <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
   <script src="js/random.js?v={{ static_file_hashes['js/random.js'] }}"></script>
+<!--
   <script src="js/sort_popover.js?v={{ static_file_hashes['js/sort_popover.js'] }}"></script>
+-->
   <script src="js/song_actions.js?v={{ static_file_hashes['js/song_actions.js'] }}"></script>
+  <script src="js/menu.js?v={{ static_file_hashes['js/menu.js'] }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="js/qr_code.js?v={{ static_file_hashes['js/qr_code.js'] }}"></script>
 </head>
 <body>
   <div class="container">
-    <div class="row navbar-top">
-      <div class="one column sort">
-        <a id="sort-popover-toggle" data-popover="#sort-popover" href="#">Title &blacktriangledown;</a>
-        <div id="sort-popover-body" class="popover">
-          <ul class="popover-list" id="nav">
-            <li class="popover-item"><a class="popover-link title">Title</a></li>
-            <li class="popover-item"><a class="popover-link artist">Artist</a></li>
-            <li class="popover-item"><a class="popover-link year">Year</a></li>
-          </ul>
+    <div class="navbar">
+      <div class="navbar-top">
+        <div class="navbar-menu">
+          <button class="side-menu-toggle" id="side-menu-toggle">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <rect x="3" y="6" width="18" height="2" fill="#333"/>
+              <rect x="3" y="11" width="18" height="2" fill="#333"/>
+              <rect x="3" y="16" width="18" height="2" fill="#333"/>
+            </svg>
+          </button>
+        </div>
+        <div class="navbar-search">
+          <input type="search" id="search">
+        </div>
+        <div class="navbar-random">
+          <button class="icon-button" id="random" title="Random Song">🔀</button>
         </div>
       </div>
-      <div class="eight columns search-col">
-        <div class="search-container">
-          <input id="search" type="search">
-          <button id="clear-search" class="clear-search-button">&times;</button>
+      <div class="navbar-bottom">
+        <div id="decade-filter" class="decade-filter">
+          {% for decade in decades %}
+          <button class="filter" id='decade{{decade}}'>{{decade}}</button>
+          {% endfor %}
         </div>
-      </div>
-      <div class="one column">
-        <button id="random" class="button-primary">Random Song</button>
-      </div>
-      <div class="twelve columns" id="searchFilter">
-        {% for decade in decades %}
-        <button class="filter" id='decade{{decade}}'>{{decade}}</button>
-        {% endfor %}
       </div>
     </div>
-    <table id="songs" class="u-full-width">
+
+    <div id="side-menu" class="side-menu">
+      <div class="side-menu-header">
+        <h3>Jam Songs</h3>
+      </div>
+      <ul class="side-menu-list">
+        <li class="side-menu-item">
+          <a href="#" class="side-menu-link">Home</a>
+        </li>
+        <li class="side-menu-item">
+          <a href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
+        </li>
+        <li class="side-menu-item">
+          <a href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
+        </li>
+      </ul>
+    </div>
+  
+    <div id="side-menu-overlay" class="side-menu-overlay"></div>
+      
+    <table id="songs">
       <tbody>
       {% for song in songs %}
       <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}.pdf#toolbar=0">
-        <td class="song-title" data-sort="{{ song.title_sort }}">{{ song.title }}</td>
+        <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
         <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
         <td>{{ song.year }}</td>
         <td class="song-actions-cell">
@@ -71,6 +95,7 @@
       {% endfor %}
       </tbody>
     </table>
+<!--
     <nav class="navbar">
       <div class="container">
         <ul class="navbar-list">
@@ -80,19 +105,15 @@
         </ul>
       </div>
     </nav>
+    -->
   </div>
   <script src="js/site.js?v={{ static_file_hashes['js/site.js'] }}"></script>
 <script>
   var st = new SongTable(document.getElementById("songs"));
   st.sort('title');
-  var f = new Filter(document.getElementById("searchFilter"));
+  var f = new Filter(document.getElementById("decade-filter"));
   var s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
   var r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
-  var sp = new SortPopover(
-    document.getElementById("sort-popover-toggle"),
-    document.getElementById("sort-popover-body"),
-    st
-  );
   var sa = new SongActions();
 </script>
 </body>

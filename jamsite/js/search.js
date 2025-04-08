@@ -12,33 +12,13 @@
       that.indexIdMap = indexIdMap;
       that.decadesMap = decadesMap;
       
-      // Get the clear button
-      var clearButton = document.getElementById('clear-search');
-      
       // Show/hide clear button based on input value
       searchInput.addEventListener(
         'input',
         function(e) {
           setTimeout(function() {
             that.search(e.target.value);
-            // Show/hide clear button
-            if (e.target.value) {
-              clearButton.style.display = 'block';
-            } else {
-              clearButton.style.display = 'none';
-            }
           }, 1);
-        },
-        false
-      );
-      
-      // Clear search when clear button is clicked
-      clearButton.addEventListener(
-        'click',
-        function() {
-          searchInput.value = '';
-          clearButton.style.display = 'none';
-          that.search('');
         },
         false
       );

@@ -187,12 +187,11 @@
     },
 
     _getTr: function(e) {
-      // If the target is a cell, return its parent (the row)
-      if (e.target.tagName === 'TD') {
-        return e.target.parentElement;
+      var target = e.target;
+      while (target.tagName != 'TR') {
+        target = target.parentElement;
       }
-      // Otherwise, assume it's already a row
-      return e.target;
+      return target;
     },
 
     _getUuidToRow: function() {
