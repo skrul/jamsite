@@ -12,5 +12,11 @@ The site is statically generated using the jamsite.py python script. The databas
 
 The javascript for this site takes the "no framework" approach.
 
+The source code for the site is in the "jamsite" directory. When the site is generated using the "poetry run jamsite --serve" command the output is put in the dist directory.
+
+
+This site is built with a css framework called skeleton (see @http://getskeleton.com/ ) which uses a columular css layout. Please consider this when making any changes to the CSS or HTML.
+
+
 - You can @ files here
 - You can use markdown but dont have to

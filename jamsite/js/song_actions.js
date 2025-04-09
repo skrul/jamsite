@@ -51,7 +51,7 @@
       var row = document.getElementById(uuid);
       
       // Get song title and artist from the row
-      var title = row.querySelector('.song-title').textContent.trim();
+      var title = row.querySelector('.song-title-text').textContent.trim();
       var artist = row.cells[1].textContent.trim();
       
       // Close the popover
