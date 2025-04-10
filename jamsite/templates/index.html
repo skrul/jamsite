@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/skeleton.css?v={{ static_file_hashes['css/skeleton.css'] }}">
   <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
   <link rel="stylesheet" href="css/menu.css?v={{ static_file_hashes['css/menu.css'] }}" type="text/css">
+  <link rel="stylesheet" href="css/offline.css?v={{ static_file_hashes['css/offline.css'] }}" type="text/css">
   <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
   <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
   <script src="js/filter.js?v={{ static_file_hashes['js/filter.js'] }}"></script>
@@ -25,6 +26,8 @@
 -->
   <script src="js/song_actions.js?v={{ static_file_hashes['js/song_actions.js'] }}"></script>
   <script src="js/menu.js?v={{ static_file_hashes['js/menu.js'] }}"></script>
+  <script src="js/offline_preferences.js?v={{ static_file_hashes['js/offline_preferences.js'] }}"></script>
+  <script src="js/sync_worker.js?v={{ static_file_hashes['js/sync_worker.js'] }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="js/qr_code.js?v={{ static_file_hashes['js/qr_code.js'] }}"></script>
 </head>
@@ -71,6 +74,23 @@
         <li class="side-menu-item">
           <a href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
         </li>
+        <li class="side-menu-item offline-section">
+          <div class="offline-toggle">
+            <label class="switch">
+              <input type="checkbox" id="offline-enabled">
+              <span class="slider round"></span>
+            </label>
+            <span class="offline-label">Offline Viewing</span>
+          </div>
+          <div class="offline-status">
+            <span id="offline-status-text">Not enabled</span>
+            <button id="offline-sync-now" class="button button-primary" style="display: none;">Update Now</button>
+            <div id="offline-progress" class="progress-bar" style="display: none;">
+              <div class="progress-bar-fill"></div>
+              <span class="progress-bar-text">0/0 files</span>
+            </div>
+          </div>
+        </li>
       </ul>
     </div>
   
@@ -115,6 +135,14 @@
   var s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
   var r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
   var sa = new SongActions();
+
+  const syncWorker = new Worker('js/sync_worker.js');
+  // Check if offline mode is enabled and start sync if it is
+  if (window.offlinePreferences.isEnabled()) {
+    document.getElementById('offline-sync-now').style.display = 'block';
+    syncWorker.postMessage({ type: 'START' });
+  }
+
 </script>
 </body>
 </html>

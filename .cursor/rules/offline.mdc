@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+This web app also supports offline viewing of the song PDFs. The UI to manage the offline viewing feature is in the menu. It contains:
+- A toggle to enable or disable the offline viewing feature
+- If enabled, a "update now" button to force a sync.
+- A message that reflects the current state of the sync system ("not enabled", "paused", "checking for updates", "downloading", "downloaded", "cleaning up", "clearing") as well as a progress bar when downloading with a count of the number of files in total and number downloaded.
+
+The system will inculde a web worker to handle the syncing of the data and a service worker that is used to handle requests for the PDF files and serve them out of the cache.
+
+The web worker is the sync engine. It owns all data storage and will store PDF file metadata in an IndexedDB object store and store the actual PDF files in a Cache API store.
+
+A single "sync cycle" proceeds through the following steps. Note that at any point the user can turn off the offline viewing feature, so periodic checks of the feature state must be done and the sync cycle will switch to a cleanup routine instead. The sync cycle steps include:
+- Check if the IndexedDB database exists, if not, create it. The schema will be a UUID and a hash for each PDF.
+- Download JSON list of songs from origin website. This is an array of JSON objects, each object having a "uuid" and "hash" property.
+- For each item in the song list, determine if the file needs to be downloaded. If the item UUID exists in the database, the hash matches, and the file exists in the cache then don't download the file. Otherwise, download the file into the cache. After the download is complete, insert or update a new record in the database with the PDF file's uuid and hash.
+- After each file is downloaded, send a progress message to populate the UI.
+- Next, check for files that are in the database but not in the JSON list of songs. Iterate through all items in the database and if the item is not in the JSON list, delete the item from the cache and delete the record from the database.
+- Finally, iterate through the cache and make sure all cached items are in the database. If an item is found in the cache that is not in the database, delete it from the cache. If an items is in the database but not in the cache, run the sync cycle again.
+
+Because the sync cycle is implemented in an asynchornous way, it is possible for the sync web worker to receive a another message from the UI while it is running. To manage this, there will be some simple states: STOPPED, SYNCING, SYNCED, STOPPING. The UI can only send three messages: START, STOP, SYNC. Below is what the system does in response to each message when it the various states:
+- START
+  - STOPPED: starts a new sync cycle
+  - SYNCING: ignored
+  - SYNCED: ignored
+  - STOPPING: ignored
+- STOP
+  - STOPPPED: ignored
+  - SYNCING: aborts current sync cycle, goes into STOPPING state and begins clean up
+  - SYCNED: goes t STOPPING state and begins clean up
+  - STOPPING: ignored
+- SYNC:
+  - STOPPPED: ignored
+  - SYNCING: ignored
+  - SYNCED: starts a new sync cycle
+  - STOPPING: ignored
+
