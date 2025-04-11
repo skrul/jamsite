@@ -25,25 +25,12 @@ COPY pyproject.toml poetry.lock .
 COPY jamsite/ jamsite/
 RUN poetry bundle venv --python=/usr/bin/python3 --only=main /venv
 
-RUN --mount=type=secret,id=google_api_token_pickle \
-  GOOGLE_API_TOKEN_PICKLE_FILE=/run/secrets/google_api_token_pickle \
-  /venv/bin/jamsite --generate
-
-# COPY webpack.config.js package.json package-lock.json .
-# COPY src/ src/
-# RUN npm install
-# RUN npx webpack
-
-  # FROM debian:12-slim
-# COPY --from=builder /venv /venv
-
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
 COPY ./nginx/${ENVIRONMENT}.conf /etc/nginx/conf.d/server.conf
-RUN cp -r ./dist/* /usr/share/nginx/html
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
 EXPOSE 443
 
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
-#ENTRYPOINT ["sleep", "infinity"]
-#ENTRYPOINT ["/venv/bin/my-awesome-app"]
+ENTRYPOINT ["/entrypoint.sh"]
