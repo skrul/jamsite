@@ -37,3 +37,6 @@ Because the sync cycle is implemented in an asynchornous way, it is possible for
   - SYNCED: starts a new sync cycle
   - STOPPING: ignored
 
+The system will also include a service worker. This service worker is responsible for allowing the app to work offline in general, and also has some specifics around serving the song PDFs. This service worker will cache the static site files (index.html, songs.json, all CSS and js files). There will be special handling for the song PDFs:
+- For the song PDFs (served from /songs/) the service worker will check the PDFs cache (managed by the sync worker) and if it is present, serve the file from the cache. Otherwise, attempt to serve the remote file.
+

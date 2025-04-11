@@ -11,138 +11,238 @@
   <meta charset="utf-8">
   <title>Jam Songs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="css/normalize.css?v={{ static_file_hashes['css/normalize.css'] }}">
-  <link rel="stylesheet" href="css/skeleton.css?v={{ static_file_hashes['css/skeleton.css'] }}">
-  <link rel="stylesheet" href="css/custom.css?v={{ static_file_hashes['css/custom.css'] }}" type="text/css">
-  <link rel="stylesheet" href="css/menu.css?v={{ static_file_hashes['css/menu.css'] }}" type="text/css">
-  <link rel="stylesheet" href="css/offline.css?v={{ static_file_hashes['css/offline.css'] }}" type="text/css">
-  <script src="js/search_data.js?v={{ static_file_hashes['js/search_data.js'] }}"></script>
-  <script src="js/song_table.js?v={{ static_file_hashes['js/song_table.js'] }}"></script>
-  <script src="js/filter.js?v={{ static_file_hashes['js/filter.js'] }}"></script>
-  <script src="js/search.js?v={{ static_file_hashes['js/search.js'] }}"></script>
-  <script src="js/random.js?v={{ static_file_hashes['js/random.js'] }}"></script>
-<!--
-  <script src="js/sort_popover.js?v={{ static_file_hashes['js/sort_popover.js'] }}"></script>
--->
-  <script src="js/song_actions.js?v={{ static_file_hashes['js/song_actions.js'] }}"></script>
-  <script src="js/menu.js?v={{ static_file_hashes['js/menu.js'] }}"></script>
-  <script src="js/offline_preferences.js?v={{ static_file_hashes['js/offline_preferences.js'] }}"></script>
-  <script src="js/sync_worker.js?v={{ static_file_hashes['js/sync_worker.js'] }}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="js/qr_code.js?v={{ static_file_hashes['js/qr_code.js'] }}"></script>
+  
+  <!-- Initial loading styles -->
+  <style>
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .main-content {
+      display: none;
+    }
+  </style>
+  
+  <!-- Service worker registration and resource loader -->
+  <script>
+    // Function to load CSS
+    function loadCSS(href) {
+      return new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.onload = resolve;
+        link.onerror = reject;
+        document.head.appendChild(link);
+      });
+    }
+    
+    // Function to load JavaScript
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+    
+    // Function to load all resources
+    function loadResources() {
+      // Load CSS files first
+      return loadCSS('css/normalize.css')
+        .then(() => loadCSS('css/skeleton.css'))
+        .then(() => loadCSS('css/custom.css'))
+        .then(() => loadCSS('css/menu.css'))
+        .then(() => loadCSS('css/offline.css'))
+        // Then load JavaScript files in sequence
+        .then(() => loadScript('js/search_data.js'))
+        .then(() => loadScript('js/song_table.js'))
+        .then(() => loadScript('js/filter.js'))
+        .then(() => loadScript('js/search.js'))
+        .then(() => loadScript('js/random.js'))
+        .then(() => loadScript('js/song_actions.js'))
+        .then(() => loadScript('js/menu.js'))
+        .then(() => loadScript('js/offline_preferences.js'))
+        .then(() => loadScript('js/sync_worker.js'))
+        .then(() => loadScript('https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'))
+        .then(() => loadScript('js/qr_code.js'))
+        .then(() => loadScript('js/site.js'))
+        .then(() => {
+          // Initialize the application
+          const st = new SongTable(document.getElementById("songs"));
+          st.sort('title');
+          const f = new Filter(document.getElementById("decade-filter"));
+          const s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
+          const r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
+          const sa = new SongActions();
+
+          const syncWorker = new Worker('js/sync_worker.js');
+          syncWorker.onmessage = function(event) {
+            console.log(event.data);
+          };
+          syncWorker.postMessage({
+            type: "START"
+          });
+          const menu = new Menu(document, syncWorker);
+          // Show the main content and hide the loading spinner
+          document.querySelector('.main-content').style.display = 'block';
+          document.querySelector('.loading').style.display = 'none';
+        })
+        .catch(error => {
+          console.error('Failed to load resources:', error);
+          // Show error message in loading spinner
+          document.querySelector('.loading').innerHTML = `
+            <div style="text-align: center; color: #e74c3c;">
+              <h2>Failed to load application</h2>
+              <p>Please refresh the page or try again later.</p>
+            </div>
+          `;
+        });
+    }
+    
+    // Register service worker and wait for it to be active
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service_worker.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+          
+          // Wait for the service worker to be active
+          if (registration.active) {
+            console.log('Service Worker is already active');
+            loadResources();
+          } else {
+            registration.addEventListener('activate', () => {
+              console.log('Service Worker activated');
+              loadResources();
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+          // Load resources anyway if service worker registration fails
+          loadResources();
+        });
+    } else {
+      // If service workers are not supported, load resources immediately
+      console.log('Service Workers not supported');
+      loadResources();
+    }
+  </script>
 </head>
 <body>
-  <div class="container">
-    <div class="navbar">
-      <div class="navbar-top">
-        <div class="navbar-menu">
-          <button class="side-menu-toggle" id="side-menu-toggle">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-              <rect x="3" y="6" width="18" height="2" fill="#333"/>
-              <rect x="3" y="11" width="18" height="2" fill="#333"/>
-              <rect x="3" y="16" width="18" height="2" fill="#333"/>
-            </svg>
-          </button>
-        </div>
-        <div class="navbar-search">
-          <input type="search" id="search">
-        </div>
-        <div class="navbar-random">
-          <button class="icon-button" id="random" title="Random Song">🔀</button>
-        </div>
-      </div>
-      <div class="navbar-bottom">
-        <div id="decade-filter" class="decade-filter">
-          {% for decade in decades %}
-          <button class="filter" id='decade{{decade}}'>{{decade}}</button>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
+  <!-- Loading spinner -->
+  <div class="loading">
+    <div class="loading-spinner"></div>
+  </div>
 
-    <div id="side-menu" class="side-menu">
-      <div class="side-menu-header">
-        <h3>Jam Songs</h3>
+  <!-- Main content (hidden initially) -->
+  <div class="main-content">
+    <div class="container">
+      <div class="navbar">
+        <div class="navbar-top">
+          <div class="navbar-menu">
+            <button class="side-menu-toggle" id="side-menu-toggle">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <rect x="3" y="6" width="18" height="2" fill="#333"/>
+                <rect x="3" y="11" width="18" height="2" fill="#333"/>
+                <rect x="3" y="16" width="18" height="2" fill="#333"/>
+              </svg>
+            </button>
+          </div>
+          <div class="navbar-search">
+            <input type="search" id="search">
+          </div>
+          <div class="navbar-random">
+            <button class="icon-button" id="random" title="Random Song">🔀</button>
+          </div>
+        </div>
+        <div class="navbar-bottom">
+          <div id="decade-filter" class="decade-filter">
+            {% for decade in decades %}
+            <button class="filter" id='decade{{decade}}'>{{decade}}</button>
+            {% endfor %}
+          </div>
+        </div>
       </div>
-      <ul class="side-menu-list">
-        <li class="side-menu-item">
-          <a href="#" class="side-menu-link">Home</a>
-        </li>
-        <li class="side-menu-item">
-          <a href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
-        </li>
-        <li class="side-menu-item">
-          <a href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
-        </li>
-        <li class="side-menu-item offline-section">
-          <div class="offline-toggle">
-            <label class="switch">
-              <input type="checkbox" id="offline-enabled">
-              <span class="slider round"></span>
-            </label>
-            <span class="offline-label">Offline Viewing</span>
-          </div>
-          <div class="offline-status">
-            <span id="offline-status-text">Not enabled</span>
-            <button id="offline-sync-now" class="button button-primary" style="display: none;">Update Now</button>
-            <div id="offline-progress" class="progress-bar" style="display: none;">
-              <div class="progress-bar-fill"></div>
-              <span class="progress-bar-text">0/0 files</span>
+
+      <div id="side-menu" class="side-menu">
+        <div class="side-menu-header">
+          <h3>Jam Songs</h3>
+        </div>
+        <ul class="side-menu-list">
+          <li class="side-menu-item">
+            <a href="#" class="side-menu-link">Home</a>
+          </li>
+          <li class="side-menu-item">
+            <a href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
+          </li>
+          <li class="side-menu-item">
+            <a href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
+          </li>
+          <li class="side-menu-item offline-section">
+            <div class="offline-toggle">
+              <label class="switch">
+                <input type="checkbox" id="offline-enabled">
+                <span class="slider round"></span>
+              </label>
+              <span class="offline-label">Offline Viewing</span>
             </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-  
-    <div id="side-menu-overlay" class="side-menu-overlay"></div>
-      
-    <table id="songs">
-      <tbody>
-      {% for song in songs %}
-      <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}.pdf#toolbar=0">
-        <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
-        <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
-        <td>{{ song.year }}</td>
-        <td class="song-actions-cell">
-          <div class="song-actions">
-            <span class="song-actions-toggle">⋮</span>
-            <div class="song-actions-popover">
-              <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}">Share via QR code</a>
+            <div class="offline-status">
+              <span id="offline-status-text">Not enabled</span>
+              <button id="offline-sync-now" class="button button-primary" style="display: none;">Update Now</button>
+              <div id="offline-progress" class="progress-bar" style="display: none;">
+                <div class="progress-bar-fill"></div>
+                <span class="progress-bar-text">0/0 files</span>
+              </div>
             </div>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-<!--
-    <nav class="navbar">
-      <div class="container">
-        <ul class="navbar-list">
-          <li class="navbar-item"><span class="navbar-link">{{ songs|count }} songs</span></li>
-          <li class="navbar-item"><a class="navbar-link" href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing">Data</a></li>
-          <li class="navbar-item"><a class="navbar-link" href="https://github.com/skrul/jamsite">Source</a></li>
+          </li>
         </ul>
       </div>
-    </nav>
-    -->
+    
+      <div id="side-menu-overlay" class="side-menu-overlay"></div>
+        
+      <table id="songs">
+        <tbody>
+        {% for song in songs %}
+        <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}.pdf#toolbar=0">
+          <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
+          <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
+          <td>{{ song.year }}</td>
+          <td class="song-actions-cell">
+            <div class="song-actions">
+              <span class="song-actions-toggle">⋮</span>
+              <div class="song-actions-popover">
+                <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}">Share via QR code</a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-  <script src="js/site.js?v={{ static_file_hashes['js/site.js'] }}"></script>
-<script>
-  var st = new SongTable(document.getElementById("songs"));
-  st.sort('title');
-  var f = new Filter(document.getElementById("decade-filter"));
-  var s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
-  var r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
-  var sa = new SongActions();
-
-  const syncWorker = new Worker('js/sync_worker.js');
-  // Check if offline mode is enabled and start sync if it is
-  if (window.offlinePreferences.isEnabled()) {
-    document.getElementById('offline-sync-now').style.display = 'block';
-    syncWorker.postMessage({ type: 'START' });
-  }
-
-</script>
 </body>
 </html>

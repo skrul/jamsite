@@ -16,7 +16,7 @@ const MESSAGE_TYPES = {
 // Database configuration
 const DB_NAME = 'jamsite_offline';
 const DB_VERSION = 1;
-const STORE_NAME = 'pdfs';
+const STORE_NAME = 'songs';
 
 let currentState = WORKER_STATES.STOPPED;
 let db = null;
@@ -156,7 +156,7 @@ async function syncCycle() {
                 sendProgress('downloading', {
                     current: downloaded,
                     total: songs.length,
-                    message: `Downloading ${song.title}...`
+                    message: `Downloading...`
                 });
 
                 const success = await downloadPDF(song.uuid, song.hash);

@@ -16,6 +16,7 @@ from .search_indexer import SearchIndexer
 import json
 import dropbox
 from . import store
+import shutil
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = "1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb"
@@ -153,6 +154,9 @@ def generate(songs, songs_dir):
     dist_js = os.path.join(jam_dir, "js")
     copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
     static_files.extend(get_files(dist_js))
+
+    # Copy the service worker to the dist directory since it needs to be served from the root.
+    shutil.copy(pdir("jamsite/js/service_worker.js"), jam_dir)
 
     si = SearchIndexer()
     for song in songs:
