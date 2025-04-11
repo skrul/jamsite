@@ -1,0 +1,106 @@
+.offline-section {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.offline-toggle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.offline-label {
+    margin-left: 1rem;
+    font-weight: 500;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: #2196F3;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    line-height: 20px;
+    color: #333;
+}
+
+/* Status Text */
+#offline-status-text {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #666;
+}
+
+/* Update Now Button */
+#offline-sync-now {
+    width: 100%;
+    margin-top: 0.5rem;
+} 

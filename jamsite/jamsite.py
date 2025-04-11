@@ -16,6 +16,7 @@ from .search_indexer import SearchIndexer
 import json
 import dropbox
 from . import store
+import shutil
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = "1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb"
@@ -134,7 +135,7 @@ def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
     )
 
 
-def generate(songs):
+def generate(songs, songs_dir):
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(pdir("jamsite/templates")),
         autoescape=jinja2.select_autoescape(["html"]),
@@ -154,9 +155,12 @@ def generate(songs):
     copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
     static_files.extend(get_files(dist_js))
 
+    # Copy the service worker to the dist directory since it needs to be served from the root.
+    shutil.copy(pdir("jamsite/js/service_worker.js"), jam_dir)
+
     si = SearchIndexer()
     for song in songs:
-        if song.skip:
+        if song.skip or song.deleted:
             continue
         si.add_song(song)
     index_str = json.dumps(si.index_as_dict(), separators=(",", ":"))
@@ -175,7 +179,7 @@ def generate(songs):
         static_file_hashes[rel_path] = get_hash(f)
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
-    songs_by_title = [s for s in songs_by_title if not s.skip]
+    songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
 
     def render(name):
         decade_list = list(decades.keys())
@@ -192,6 +196,19 @@ def generate(songs):
         ).dump(os.path.join(jam_dir, name))
 
     render("index.html")
+
+    # Build songs.json that is an array of objects with uuid and hash.
+    songs_json = []
+    for song in songs_by_title:
+        # TODO: remove this
+        if song.uuid.startswith("dbx:"):
+            continue
+        metadata_path = os.path.join(songs_dir, song.uuid + ".json")
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+            songs_json.append({"uuid": song.uuid, "hash": metadata["hash"]})
+    with open(os.path.join(jam_dir, "songs.json"), "w") as f:
+        json.dump(songs_json, f)
 
 
 def publish(aws_profile):
@@ -263,9 +280,8 @@ class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
 
-def serve():
+def serve(songs_dir):
     os.chdir(pdir("dist"))
-    songs_dir = os.getenv("SONGS_DIR", "/Volumes/songs/data")
     
     # Create handler with songs directory
     handler = lambda *args, **kwargs: JamSiteHandler(*args, songs_dir=songs_dir, **kwargs)
@@ -332,6 +348,9 @@ def main():
     parser.add_argument("--songs-dir")
     parser.add_argument("--cached", action="store_true")
     args = parser.parse_args()
+
+    songs_dir = os.getenv("SONGS_DIR", "/Volumes/songs/data")
+
     if args.sync:
         drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
@@ -347,9 +366,6 @@ def main():
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
         sync_to_spreadsheet(sheets_service, "gary", dbx_songs, existing_songs_by_row)
     if args.download:
-        songs_dir = os.getenv("SONGS_DIR") or args.songs_dir
-        if not songs_dir:
-            parser.error("--songs-dir or SONGS_DIR environment variable is required when using --download")
         print(f"Downloading songs to {songs_dir}")
         drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
@@ -360,8 +376,8 @@ def main():
         store.download_songs_from_dropbox(dbx, dbx_songs, songs_dir)
     if args.generate:
         songs = get_songs(args.cached)
-        generate(songs)
+        generate(songs, songs_dir)
     if args.serve:
-        serve()
+        serve(songs_dir)
     if args.publish:
         publish(args.aws_profile)
