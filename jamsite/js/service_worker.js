@@ -4,8 +4,6 @@ const PDF_CACHE = 'pdf-cache';
 
 // Files to cache on install
 const STATIC_FILES = [
-  '/',
-  '/index.html',
   '/songs.json',
   '/css/normalize.css',
   '/css/skeleton.css',
@@ -60,6 +58,41 @@ self.addEventListener('fetch', event => {
   // Handle PDF files specially
   if (url.pathname.startsWith('/songs/') && url.pathname.endsWith('.pdf')) {
     event.respondWith(handlePdfRequest(event.request));
+    return;
+  }
+  
+  // Special handling for index.html - always try network first, but cache for offline use
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Clone the response as it can only be consumed once
+          const responseToCache = response.clone();
+          
+          // Cache the response for offline use
+          caches.open(STATIC_CACHE)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+            
+          return response;
+        })
+        .catch(() => {
+          // If network fails, try the cache
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              
+              // If no cached version exists, return a simple offline page
+              return new Response(
+                '<!DOCTYPE html><html><head><title>Jam Songs - Offline</title><style>body{font-family:sans-serif;text-align:center;padding:20px;}</style></head><body><h1>Jam Songs</h1><p>You are offline. Please connect to the internet to access this site.</p></body></html>',
+                { headers: { 'Content-Type': 'text/html' } }
+              );
+            });
+        })
+    );
     return;
   }
   

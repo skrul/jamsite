@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!--
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-304959-1"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -8,6 +9,7 @@
     gtag('js', new Date());
     gtag('config', 'UA-304959-1');
   </script>
+  -->
   <meta charset="utf-8">
   <title>Jam Songs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -129,18 +131,28 @@
     
     // Register service worker and wait for it to be active
     if ('serviceWorker' in navigator) {
+      console.log('Registering service worker');
       navigator.serviceWorker.register('/service_worker.js')
         .then(registration => {
           console.log('Service Worker registered with scope:', registration.scope);
           
           // Wait for the service worker to be active
-          if (registration.active) {
+          var incomingSw = registration.installing || registration.waiting;
+          if (registration.active && !incomingSw) {
             console.log('Service Worker is already active');
             loadResources();
           } else {
-            registration.addEventListener('activate', () => {
-              console.log('Service Worker activated');
-              loadResources();
+            console.log('Waiting for service worker to be active');
+            return new Promise(fulfill => {
+              incomingSw.onstatechange = evt => {
+                console.log('Service Worker state changed to:', evt.target.state);
+                if (evt.target.state === 'activated') {
+                  console.log('Service Worker activated');
+                  incomingSw.onstatechange = null;
+                  loadResources();
+                  return fulfill();
+                }
+              };
             });
           }
         })

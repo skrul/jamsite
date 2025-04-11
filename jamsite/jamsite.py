@@ -196,6 +196,7 @@ def generate(songs, songs_dir):
         ).dump(os.path.join(jam_dir, name))
 
     render("index.html")
+    render("reset.html")
 
     # Build songs.json that is an array of objects with uuid and hash.
     songs_json = []
