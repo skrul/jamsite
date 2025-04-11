@@ -201,9 +201,6 @@ def generate(songs, songs_dir):
     # Build songs.json that is an array of objects with uuid and hash.
     songs_json = []
     for song in songs_by_title:
-        # TODO: remove this
-        if song.uuid.startswith("dbx:"):
-            continue
         metadata_path = os.path.join(songs_dir, song.uuid + ".json")
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
