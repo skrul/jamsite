@@ -12,6 +12,9 @@
   <title>Jam Songs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>">
+  
   <!-- Initial loading styles -->
   <style>
     .loading {
@@ -189,36 +192,39 @@
 
       <div id="side-menu" class="side-menu">
         <div class="side-menu-header">
-          <h3>Jam Songs</h3>
+          <h3>Jam Songs 🎸</h3>
         </div>
-        <ul class="side-menu-list">
-          <li class="side-menu-item">
-            <a href="#" class="side-menu-link">Home</a>
-          </li>
-          <li class="side-menu-item">
-            <a href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
-          </li>
-          <li class="side-menu-item">
-            <a href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
-          </li>
-          <li class="side-menu-item offline-section">
-            <div class="offline-toggle">
-              <label class="switch">
-                <input type="checkbox" id="offline-enabled">
-                <span class="slider round"></span>
-              </label>
-              <span class="offline-label">Offline Viewing</span>
-            </div>
-            <div class="offline-status">
-              <span id="offline-status-text">Not enabled</span>
-              <button id="offline-sync-now" class="button button-primary" style="display: none;">Update Now</button>
-              <div id="offline-progress" class="progress-bar" style="display: none;">
-                <div class="progress-bar-fill"></div>
-                <span class="progress-bar-text">0/0 files</span>
+        <div class="side-menu-content">
+          <ul class="side-menu-list">
+            <li class="side-menu-item offline-section">
+              <div class="offline-toggle">
+                <label class="switch">
+                  <input type="checkbox" id="offline-enabled">
+                  <span class="slider round"></span>
+                </label>
+                <span class="offline-label">Offline Viewing</span>
               </div>
-            </div>
-          </li>
-        </ul>
+              <div class="offline-status">
+                <span id="offline-status-text">Not enabled</span>
+                <button id="offline-sync-now" class="button button-primary" style="display: none;">Update Now</button>
+                <div id="offline-progress" class="progress-bar" style="display: none;">
+                  <div class="progress-bar-fill"></div>
+                  <span class="progress-bar-text">0/0 files</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="side-menu-footer">
+          <ul class="side-menu-list">
+            <li class="side-menu-item">
+              <a target="_blank" href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
+            </li>
+            <li class="side-menu-item">
+              <a target="_blank" href="https://github.com/skrul/jamsite" class="side-menu-link">Source</a>
+            </li>
+          </ul>
+        </div>
       </div>
     
       <div id="side-menu-overlay" class="side-menu-overlay"></div>
