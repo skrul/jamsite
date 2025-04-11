@@ -105,9 +105,11 @@
           syncWorker.onmessage = function(event) {
             console.log(event.data);
           };
-          syncWorker.postMessage({
-            type: "START"
-          });
+          if (window.offlinePreferences.isEnabled()) {
+            syncWorker.postMessage({
+              type: "START"
+            });
+          }
           const menu = new Menu(document, syncWorker);
           // Show the main content and hide the loading spinner
           document.querySelector('.main-content').style.display = 'block';
@@ -192,7 +194,7 @@
 
       <div id="side-menu" class="side-menu">
         <div class="side-menu-header">
-          <h3>Jam Songs 🎸</h3>
+          <h4>Jam Songs 🎸</h4>
         </div>
         <div class="side-menu-content">
           <ul class="side-menu-list">
