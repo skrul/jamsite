@@ -201,10 +201,13 @@ def generate(songs, songs_dir):
     # Build songs.json that is an array of objects with uuid and hash.
     songs_json = []
     for song in songs_by_title:
-        metadata_path = os.path.join(songs_dir, song.uuid + ".json")
-        with open(metadata_path, "r") as f:
-            metadata = json.load(f)
-            songs_json.append({"uuid": song.uuid, "hash": metadata["hash"]})
+        try:
+       	    metadata_path = os.path.join(songs_dir, song.uuid + ".json")
+            with open(metadata_path, "r") as f:
+                metadata = json.load(f)
+                songs_json.append({"uuid": song.uuid, "hash": metadata["hash"]})
+        except Exception as e:
+            print(f"⚠️ Unexpected error with song {song.uuid}: {e}")
     with open(os.path.join(jam_dir, "songs.json"), "w") as f:
         json.dump(songs_json, f)
 
