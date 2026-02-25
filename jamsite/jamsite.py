@@ -10,7 +10,6 @@ import socketserver
 import boto3
 from shutil import copytree
 import pickle
-from collections import defaultdict
 import hashlib
 from .search_indexer import SearchIndexer
 import json
@@ -39,23 +38,7 @@ def read_songs_spreadsheet(service, sheet):
     for row, value in enumerate(values):
         if row == 0:
             continue
-        d = defaultdict(lambda: "")
-        for i, v in enumerate(value):
-            d[i] = v
-        song = Song(
-            d[0],
-            d[1],
-            d[2],
-            d[3],
-            d[4],
-            d[5],
-            d[6],
-            d[7],
-            d[8],
-            d[9] == "x",
-            d[10] == "x",
-        )
-        songs_by_row[row] = song
+        songs_by_row[row] = Song.from_spreadsheet_row(value)
     return songs_by_row
 
 
@@ -105,6 +88,7 @@ def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
             s.title,
             None,
             s.year,
+            "",              # key - empty for new songs
             s.download_link,
             s.view_link,
             s.modified_time,

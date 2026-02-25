@@ -247,7 +247,7 @@
         <tbody>
         {% for song in songs %}
         <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}.pdf#toolbar=0">
-          <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
+          <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}{% if song.key %} ({{ song.key }}){% endif %}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
           <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
           <td>{{ song.year }}</td>
           <td class="song-actions-cell">

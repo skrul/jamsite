@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 class Song(object):
     SPREADSHEET_COLUMNS = {
         "uuid": "A",
@@ -6,11 +9,12 @@ class Song(object):
         "title": "D",
         "title_sort": "E",
         "year": "F",
-        "download_link": "G",
-        "view_link": "H",
-        "modified_time": "I",
-        "deleted": "J",
-        "skip": "K",
+        "key": "G",
+        "download_link": "H",
+        "view_link": "I",
+        "modified_time": "J",
+        "deleted": "K",
+        "skip": "L",
     }
 
     def __init__(
@@ -26,6 +30,7 @@ class Song(object):
         modified_time,
         deleted,
         skip,
+        key="",
         hash=None,
     ):
         self.uuid = uuid
@@ -34,6 +39,7 @@ class Song(object):
         self.title = title
         self.title_sort = title_sort
         self.year = year
+        self.key = key
         self.download_link = download_link
         self.view_link = view_link
         self.modified_time = modified_time
@@ -49,6 +55,7 @@ class Song(object):
             "title: " + str(self.title),
             "title_sort: " + str(self.title_sort),
             "year: " + str(self.year),
+            "key: " + str(self.key),
             "download_link: " + str(self.download_link),
             "view_link: " + str(self.view_link),
             "modified_time: " + str(self.modified_time),
@@ -57,3 +64,23 @@ class Song(object):
             "hash: " + str(self.hash),
         ]
         return ", ".join(a)
+
+    @classmethod
+    def from_spreadsheet_row(cls, row):
+        d = defaultdict(lambda: "")
+        for i, v in enumerate(row):
+            d[i] = v
+        return cls(
+            uuid=d[0],
+            artist=d[1],
+            artist_sort=d[2],
+            title=d[3],
+            title_sort=d[4],
+            year=d[5],
+            download_link=d[7],
+            view_link=d[8],
+            modified_time=d[9],
+            deleted=d[10] == "x",
+            skip=d[11] == "x",
+            key=d[6],
+        )
