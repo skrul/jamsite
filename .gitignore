@@ -1,12 +1,10 @@
 __pycache__/
+*.pyc
+.venv/
+.pytest_cache/
 dist/
 token.pickle
 songs.pickle
 credentials.json
-*.pyc
-lib/
-pyvenv.cfg
-bin/
 dropbox_token.txt
-node_modules
 *.pem

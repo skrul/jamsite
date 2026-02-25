@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 
-class Song(object):
+class Song:
     SPREADSHEET_COLUMNS = {
         "uuid": "A",
         "artist": "B",

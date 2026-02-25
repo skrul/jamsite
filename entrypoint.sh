@@ -3,7 +3,7 @@ set -e
 
 # Generate the site
 echo "Generating site..."
-/venv/bin/jamsite --generate
+uv run jamsite --generate
 
 # Copy the generated files to nginx's html directory
 echo "Copying generated files to nginx html directory..."
