@@ -16,6 +16,8 @@ import json
 import dropbox
 from . import store
 import shutil
+from .artists import read_artists, append_artist, Artist
+from .musicbrainz import MusicBrainzArtistLookup
 
 PORT = 8000
 JAM_SONGS_FOLDER_ID = "1YBA99d9GmHTa6HktdpjHvSpoMQfoOrBb"
@@ -24,6 +26,98 @@ GARY_SONGS_FOLDER_PATH = "/Lyrics + Chords"
 S3_BUCKET = "skrul.com"
 
 CONTENT_TYPES = {"html": "text/html", "css": "text/css", "js": "application/javascript"}
+MB_CACHE_PATH = os.path.expanduser("~/.jamsite_mb_cache.json")
+
+
+def _looks_like_collab(original_name, mb_name):
+    """Check if the original name looks like a collaboration credit."""
+    has_collab_marker = "&" in original_name or " and " in original_name.lower()
+    significantly_shorter = len(mb_name) < len(original_name) * 0.75
+    return has_collab_marker and significantly_shorter
+
+
+def _prompt_accept_match(result):
+    """Prompt user to accept/reject a MusicBrainz match. Returns 'y', 'n', or 's'."""
+    score_warning = " ⚠️ LOW CONFIDENCE" if result.score < 90 else ""
+    print(f"  MusicBrainz match (score {result.score}):{score_warning}")
+    print(f"    Name: {result.name}")
+    print(f"    Sort: {result.sort_name}")
+    type_info = result.type or "Unknown"
+    country_info = result.country or "??"
+    print(f"    Type: {type_info}, Country: {country_info}")
+    print(f"    ID: {result.mb_id}")
+    if result.disambiguation:
+        print(f"    ({result.disambiguation})")
+    choice = input("  Accept? [Y/n/s(kip)] ").strip().lower()
+    if choice in ("", "y"):
+        return "y"
+    elif choice == "n":
+        return "n"
+    else:
+        return "s"
+
+
+def _prompt_display_name(original_name, mb_name):
+    """Prompt user to choose display name. Returns the chosen name."""
+    if original_name.lower() == mb_name.lower():
+        return mb_name
+    is_collab = _looks_like_collab(original_name, mb_name)
+    if is_collab:
+        default = "k"
+        print(f'  Use "{mb_name}" as display name, or keep "{original_name}"? [k(eep)/m(b)]')
+    else:
+        default = "m"
+        print(f'  Use "{mb_name}" as display name, or keep "{original_name}"? [m(b)/k(eep)]')
+    choice = input("  ").strip().lower()
+    if choice == "":
+        choice = default
+    if choice == "k":
+        return original_name
+    return mb_name
+
+
+def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
+    """Resolve artist_sort for a new song. Returns the sort name or None.
+
+    May prompt the user interactively and update artists_by_name + the artists sheet.
+    """
+    if not song.artist:
+        return None
+
+    key = song.artist.lower()
+    if key in artists_by_name:
+        return artists_by_name[key].mb_sort
+
+    print(f'\nNew artist: "{song.artist}"')
+    results = mb.search_artist(song.artist)
+    if not results:
+        print("  No MusicBrainz results found.")
+        sort_name = input("  Enter sort name manually (or press Enter to skip): ").strip()
+        return sort_name or None
+
+    top = results[0]
+    choice = _prompt_accept_match(top)
+
+    if choice == "y":
+        display_name = _prompt_display_name(song.artist, top.name)
+        artist = Artist(
+            name=display_name,
+            mb_id=top.mb_id,
+            mb_artist=top.name,
+            mb_sort=top.sort_name,
+        )
+        artists_by_name[display_name.lower()] = artist
+        # Also index by the song's artist name so subsequent songs match
+        if key != display_name.lower():
+            artists_by_name[key] = artist
+        if sheets_service:
+            append_artist(sheets_service, JAM_SONGS_SPREADSHEET_ID, artist)
+        return top.sort_name
+    elif choice == "n":
+        sort_name = input("  Enter sort name manually (or press Enter to skip): ").strip()
+        return sort_name or None
+    else:
+        return None
 
 
 def read_songs_spreadsheet(service, sheet):
@@ -42,7 +136,10 @@ def read_songs_spreadsheet(service, sheet):
     return songs_by_row
 
 
-def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
+def sync_to_spreadsheet(
+    service, sheet, drive_songs, existing_songs_by_row,
+    artists_by_name=None, mb=None,
+):
     existing_songs_uuids = {
         existing_songs_by_row[r].uuid: (r, existing_songs_by_row[r])
         for r in existing_songs_by_row
@@ -80,11 +177,21 @@ def sync_to_spreadsheet(service, sheet, drive_songs, existing_songs_by_row):
                 }
             )
 
+    # Resolve artist_sort for new songs
+    artist_sort_map = {}
+    if artists_by_name is not None and mb is not None:
+        for s in to_append:
+            if s.artist and s.artist.lower() not in artist_sort_map:
+                sort_name = resolve_artist_sort(
+                    s, artists_by_name, mb, service
+                )
+                artist_sort_map[s.artist.lower()] = sort_name
+
     values = [
         [
             s.uuid,
             s.artist,
-            None,
+            artist_sort_map.get(s.artist.lower()) if artists_by_name is not None else None,
             s.title,
             None,
             s.year,
@@ -342,14 +449,24 @@ def main():
 
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-        sync_to_spreadsheet(sheets_service, "skrul", drive_songs, existing_songs_by_row)
+        artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
+        mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
+        sync_to_spreadsheet(
+            sheets_service, "skrul", drive_songs, existing_songs_by_row,
+            artists_by_name=artists_by_name, mb=mb,
+        )
     if args.sync_gary:
         dbx = get_dbx()
         dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
 
         sheets_service = google_api.auth("sheets", "v4")
         existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
-        sync_to_spreadsheet(sheets_service, "gary", dbx_songs, existing_songs_by_row)
+        artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
+        mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
+        sync_to_spreadsheet(
+            sheets_service, "gary", dbx_songs, existing_songs_by_row,
+            artists_by_name=artists_by_name, mb=mb,
+        )
     if args.download:
         print(f"Downloading songs to {songs_dir}")
         drive_service = get_drive(force_reauth=args.force_google_reauth)
