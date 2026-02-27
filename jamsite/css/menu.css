@@ -108,6 +108,64 @@
   color: #33C3F0;
 }
 
+/* Reset App button */
+.reset-app-item {
+  text-align: center;
+}
+
+.reset-app-button {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 6px 16px;
+}
+
+.reset-app-button:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.reset-app-hint {
+  font-size: 0.82rem;
+  color: #bbb;
+  margin-top: 4px;
+}
+
+/* Diagnostics section */
+.diagnostics-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
+.diagnostics-list {
+  margin: 0 0 12px 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 3px;
+}
+
+.diagnostics-list dt {
+  font-size: 0.85rem;
+  color: #999;
+  white-space: nowrap;
+}
+
+.diagnostics-list dd {
+  font-size: 0.85rem;
+  font-family: monospace;
+  color: #444;
+  margin: 0;
+}
+
 /* Mobile styles */
 @media (max-width: 768px) {
   /* Hide sort popover on mobile */

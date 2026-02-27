@@ -87,6 +87,7 @@
         .then(() => loadScript('js/filter.js'))
         .then(() => loadScript('js/search.js'))
         .then(() => loadScript('js/random.js'))
+        .then(() => loadScript('js/diagnostics.js'))
         .then(() => loadScript('js/song_actions.js'))
         .then(() => loadScript('js/menu.js'))
         .then(() => loadScript('js/offline_preferences.js'))
@@ -113,6 +114,7 @@
             });
           }
           const menu = new Menu(document, syncWorker);
+          Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP);
           // Show the main content and hide the loading spinner
           document.querySelector('.main-content').style.display = 'block';
           document.querySelector('.loading').style.display = 'none';
@@ -234,6 +236,11 @@
         </div>
         <div class="side-menu-footer">
           <ul class="side-menu-list">
+            <li id="diagnostics-section" class="side-menu-item diagnostics-section"></li>
+            <li class="side-menu-item reset-app-item">
+              <button id="reset-app" class="reset-app-button">Reset App</button>
+              <div class="reset-app-hint">Clears cached files and reloads</div>
+            </li>
             <li class="side-menu-item">
               <a target="_blank" href="https://docs.google.com/spreadsheets/d/1yGF1CY-obfm5QWiVhvvBoN5XYtQe902hs1np6b6G9Ag/edit?usp=sharing" class="side-menu-link">Data</a>
             </li>

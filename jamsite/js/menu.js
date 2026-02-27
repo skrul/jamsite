@@ -50,9 +50,12 @@ class Menu {
     
     // Offline toggle event
     this.offlineEnabled.addEventListener('change', this.handleOfflineToggle);
-    
+
     // Sync now button event
     this.offlineSyncNow.addEventListener('click', this.handleSyncNow);
+
+    // Reset app button
+    document.getElementById('reset-app').addEventListener('click', this.handleReset.bind(this));
     
     // Worker message event
     this.syncWorker.onmessage = this.handleWorkerMessage;
@@ -77,6 +80,27 @@ class Menu {
     this.syncWorker.postMessage({ type: 'SYNC' });
   }
   
+  async handleReset() {
+    if (!confirm('This will clear all cached files and reload the page. Continue?')) return;
+
+    try {
+      // Clear all caches (static app shell + PDFs)
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    } catch(e) {}
+
+    try {
+      // Unregister service worker
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(r => r.unregister()));
+    } catch(e) {}
+
+    // Clear local storage
+    localStorage.clear();
+
+    window.location.reload();
+  }
+
   handleWorkerMessage(event) {
     const { type, status, data } = event.data;
     
