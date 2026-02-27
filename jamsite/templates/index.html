@@ -136,6 +136,11 @@
     
     // Register service worker and wait for it to be active
     if ('serviceWorker' in navigator) {
+      // When a new service worker takes over, reload to get fresh content
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+
       console.log('Registering service worker');
       navigator.serviceWorker.register('/service_worker.js')
         .then(registration => {
