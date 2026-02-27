@@ -28,6 +28,7 @@
         ]);
       }
       this._sortRows();
+      this._reorderDom();
       this.refreshTable();
 
       // Clear any selected rows when the page is loaded
@@ -135,6 +136,7 @@
       this.sortColumn = column;
       //this._getNavItem(this.sortColumn).classList.add('selected');
       this._sortRows();
+      this._reorderDom();
       this.refreshTable();
     },
 
@@ -156,6 +158,13 @@
           a_values[1].localeCompare(b_values[1]) ||
           a_values[2].localeCompare(b_values[2]);
       });
+    },
+
+    _reorderDom: function() {
+      var tableBody = this.table.tBodies[0];
+      for (var i = 0; i < this.rows.length; i++) {
+        tableBody.appendChild(this.rows[i]);
+      }
     },
 
     refreshTable: function() {
