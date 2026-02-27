@@ -136,7 +136,10 @@ def read_songs_spreadsheet(service, sheet):
     for row, value in enumerate(values):
         if row == 0:
             continue
-        songs_by_row[row] = Song.from_spreadsheet_row(value)
+        song = Song.from_spreadsheet_row(value)
+        if not song.uuid or not song.artist or not song.title:
+            continue
+        songs_by_row[row] = song
     return songs_by_row
 
 
