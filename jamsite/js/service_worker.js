@@ -4,7 +4,6 @@ const PDF_CACHE = 'pdf-cache';
 
 // Files to cache on install
 const STATIC_FILES = [
-  '/songs.json',
   '/css/normalize.css',
   '/css/skeleton.css',
   '/css/custom.css',
@@ -61,6 +60,20 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // songs.json changes on every deploy - always fetch fresh, fall back to cache
+  if (url.pathname === '/songs.json') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const responseToCache = response.clone();
+          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, responseToCache));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   // Special handling for index.html - always try network first, but cache for offline use
   if (url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(

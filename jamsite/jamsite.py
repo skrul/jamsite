@@ -255,7 +255,9 @@ def generate(songs, songs_dir):
     copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
     static_files.extend(get_files(dist_js))
 
-    # Copy the service worker to the dist directory since it needs to be served from the root.
+    # Copy the service worker to the dist directory, injecting a build-specific
+    # cache version so deploys automatically bust the static cache.
+    # (Version is computed later after all hashes are known — placeholder for now)
     shutil.copy(pdir("jamsite/js/service_worker.js"), jam_dir)
 
     si = SearchIndexer()
@@ -277,6 +279,14 @@ def generate(songs, songs_dir):
     for f in static_files:
         rel_path = os.path.relpath(f, jam_dir)
         static_file_hashes[rel_path] = get_hash(f)
+
+    # Inject a cache version derived from all static file hashes so every
+    # deploy that changes any asset automatically busts the browser cache.
+    combined = hashlib.md5("".join(sorted(static_file_hashes.values())).encode()).hexdigest()
+    sw_path = os.path.join(jam_dir, "service_worker.js")
+    sw_text = open(sw_path).read()
+    sw_text = re.sub(r"'jamsite-static-[^']*'", f"'jamsite-static-{combined[:8]}'", sw_text)
+    open(sw_path, "w").write(sw_text)
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
     songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
