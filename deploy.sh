@@ -15,11 +15,7 @@ ssh $SERVER "cd /root/jamsite && git pull"
 
 echo ""
 echo "=== Rebuilding Docker container ==="
-ssh $SERVER "cd /root && docker compose build jamsite $NO_CACHE && docker compose down jamsite && docker compose up jamsite -d"
-
-echo ""
-echo "=== Starting Gotenberg ==="
-ssh $SERVER "cd /root && docker compose up gotenberg -d"
+ssh $SERVER "cd /root && docker compose build jamsite $NO_CACHE && docker compose down && docker compose up -d"
 
 echo ""
 echo "=== Downloading songs ==="
