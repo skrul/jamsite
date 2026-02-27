@@ -18,7 +18,7 @@
         function(e) {
           setTimeout(function() {
             that.search(e.target.value);
-          }, 1);
+          }, 150);
         },
         false
       );

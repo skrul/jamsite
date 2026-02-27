@@ -17,7 +17,19 @@
       for (var i = 0; i < this.table.tBodies[0].rows.length; i++) {
         this.rows.push(this.table.tBodies[0].rows[i]);
       }
-      
+
+      this.rowSortKeys = new Map();
+      for (var i = 0; i < this.rows.length; i++) {
+        var row = this.rows[i];
+        this.rowSortKeys.set(row, [
+          row.cells[0].getAttribute('data-sort') || row.cells[0].textContent,
+          row.cells[1].getAttribute('data-sort') || row.cells[1].textContent,
+          row.cells[2].getAttribute('data-sort') || row.cells[2].textContent,
+        ]);
+      }
+      this._sortRows();
+      this.refreshTable();
+
       // Clear any selected rows when the page is loaded
       // This fixes the issue with rows remaining highlighted after using the back button
       this.clearRowSelection();
@@ -122,10 +134,12 @@
       //this._getNavItem(this.sortColumn).classList.remove('selected');
       this.sortColumn = column;
       //this._getNavItem(this.sortColumn).classList.add('selected');
+      this._sortRows();
       this.refreshTable();
     },
 
-    refreshTable: function() {
+    _sortRows: function() {
+      var that = this;
       var toKey;
       if (this.sortColumn == 'title') {
         toKey = function(c) { return [c[0], c[1], c[2]]; }
@@ -135,41 +149,24 @@
         toKey = function(c) { return [c[2], c[1], c[0]]; }
       }
 
-      var get_keys_for_row = function(row) {
-        var get_cell_value = function(idx) {
-          return row.cells[idx].getAttribute('data-sort') || row.cells[idx].textContent;
-        }
-        return toKey([
-          get_cell_value(0),
-          get_cell_value(1),
-          get_cell_value(2)
-        ]);
-      }
-
       this.rows.sort(function(a, b) {
-        a_values = get_keys_for_row(a);
-        b_values = get_keys_for_row(b);
+        var a_values = toKey(that.rowSortKeys.get(a));
+        var b_values = toKey(that.rowSortKeys.get(b));
         return a_values[0].localeCompare(b_values[0]) ||
           a_values[1].localeCompare(b_values[1]) ||
           a_values[2].localeCompare(b_values[2]);
       });
+    },
 
-      var tableBody = this.table.tBodies[0];
+    refreshTable: function() {
+      var visibleIndex = 0;
       for (var i = 0; i < this.rows.length; i++) {
         var row = this.rows[i];
-        var appendRow = false;
-        if (this.searchResults) {
-          appendRow = this.searchResults.has(row.id);
-        } else {
-          appendRow = true;
-        }
-
-        if (appendRow) {
-          tableBody.appendChild(row);
-        } else {
-          if (row.parentNode == tableBody) {
-            tableBody.removeChild(row);
-          }
+        var showRow = this.searchResults ? this.searchResults.has(row.id) : true;
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) {
+          row.classList.toggle('row-odd', visibleIndex % 2 === 0);
+          visibleIndex++;
         }
       }
 

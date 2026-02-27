@@ -90,7 +90,7 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   text-decoration: none;
 }
 
-#songs tbody tr:nth-child(odd) {
+#songs tbody tr.row-odd {
   background-color: #eee;
 }
 
