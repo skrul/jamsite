@@ -434,11 +434,29 @@ def get_hash(f_path):
 
 
 def get_dbx():
-    # Refresh this token https://www.dropbox.com/developers/apps/info/prsqycfo9z22u99
-    token_file = os.getenv("DROPBOX_TOKEN_FILE", "dropbox_token.txt")
-    token = pathlib.Path(token_file).read_text().strip()
-    dbx = dropbox.Dropbox(token)
+    creds_file = os.getenv("DROPBOX_CREDENTIALS_FILE", "dropbox_credentials.json")
+    creds = json.loads(pathlib.Path(creds_file).read_text())
+    dbx = dropbox.Dropbox(
+        oauth2_refresh_token=creds["refresh_token"],
+        app_key=creds["app_key"],
+        app_secret=creds["app_secret"],
+    )
     return dbx
+
+
+def dropbox_auth():
+    from dropbox import DropboxOAuth2FlowNoRedirect
+    creds_file = os.getenv("DROPBOX_CREDENTIALS_FILE", "dropbox_credentials.json")
+    app_key = input("App key: ").strip()
+    app_secret = input("App secret: ").strip()
+    auth_flow = DropboxOAuth2FlowNoRedirect(app_key, app_secret, token_access_type="offline")
+    print(f"\n1. Go to: {auth_flow.start()}")
+    print("2. Click 'Allow', then copy the authorization code.")
+    auth_code = input("3. Enter the authorization code: ").strip()
+    result = auth_flow.finish(auth_code)
+    creds = {"app_key": app_key, "app_secret": app_secret, "refresh_token": result.refresh_token}
+    pathlib.Path(creds_file).write_text(json.dumps(creds, indent=2))
+    print(f"\nCredentials saved to {creds_file}")
 
 
 def get_drive(force_reauth=False):
@@ -453,6 +471,7 @@ def main():
     group.add_argument("--generate", action="store_true")
     group.add_argument("--check", action="store_true")
     group.add_argument("--resolve-duplicates", action="store_true")
+    group.add_argument("--dropbox-auth", action="store_true")
     parser.add_argument("--check-years", action="store_true")
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--publish", action="store_true")
@@ -464,6 +483,10 @@ def main():
     args = parser.parse_args()
 
     songs_dir = os.getenv("SONGS_DIR", "/Volumes/songs/data")
+
+    if args.dropbox_auth:
+        dropbox_auth()
+        return
 
     if args.sync:
         drive_service = get_drive(force_reauth=args.force_google_reauth)

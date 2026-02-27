@@ -8,4 +8,5 @@ token.pickle
 songs.pickle
 credentials.json
 dropbox_token.txt
+dropbox_credentials.json
 *.pem
