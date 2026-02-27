@@ -94,6 +94,14 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   background-color: #eee;
 }
 
+#songs tbody tr {
+  cursor: pointer;
+}
+
+#songs tbody tr * {
+  cursor: pointer;
+}
+
 #songs tr td:first-child {
   padding-left: 4px;
 }
