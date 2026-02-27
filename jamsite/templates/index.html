@@ -116,6 +116,9 @@
           // Show the main content and hide the loading spinner
           document.querySelector('.main-content').style.display = 'block';
           document.querySelector('.loading').style.display = 'none';
+          if (!mobileAndTabletcheck()) {
+            document.getElementById('search').focus();
+          }
         })
         .catch(error => {
           console.error('Failed to load resources:', error);
