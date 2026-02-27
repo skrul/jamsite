@@ -27,7 +27,7 @@ def get_songs_from_drive(service, folder_id):
             .execute()
         )
         for file in response.get("files", []):
-            match = re.match(r"(.*) [-‐] (.*) \((.*)\)\.pdf", file.get("name"))
+            match = re.match(r"(.*) [-‐] (.*) \((.*)\)(?:\s+\[[^\]]+\])?\.pdf", file.get("name"))
             if match is not None:
                 song = Song(
                     "gd:" + file.get("id"),
@@ -195,7 +195,8 @@ def download_songs_from_dropbox(dbx, songs, dest):
 
 def convert_to_pdf(input_path, output_path):
     print(f"Converting {input_path} to {output_path}")
-    with GotenbergClient("http://gotenberg:3000") as client:
+    gotenberg_url = os.getenv("GOTENBERG_URL", "http://gotenberg:3000")
+    with GotenbergClient(gotenberg_url) as client:
         with client.libre_office.to_pdf() as route:
             response = route.convert(Path(input_path)).run()
             response.to_file(Path(output_path))

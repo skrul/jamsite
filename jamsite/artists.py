@@ -1,3 +1,4 @@
+import unicodedata
 from dataclasses import dataclass
 
 
@@ -30,7 +31,7 @@ def read_artists(service, spreadsheet_id):
         mb_artist = row[2] if len(row) > 2 else ""
         mb_sort = row[3] if len(row) > 3 else ""
         if name:
-            artists_by_name[name.lower()] = Artist(
+            artists_by_name[unicodedata.normalize("NFC", name.lower())] = Artist(
                 name=name,
                 mb_id=mb_id,
                 mb_artist=mb_artist,
