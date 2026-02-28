@@ -25,15 +25,15 @@ const STATIC_FILES = [
   '/js/site.js'
 ];
 
-// Install event - cache static files
+// Install event - cache static files, always skip waiting
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then(cache => {
         console.log('Caching static files');
         return cache.addAll(STATIC_FILES.map(url => new Request(url, { cache: 'reload' })));
       })
-      .then(() => self.skipWaiting())
   );
 });
 
