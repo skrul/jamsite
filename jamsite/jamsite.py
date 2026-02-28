@@ -8,6 +8,8 @@ import jinja2
 import pathlib
 import http.server
 import socketserver
+import threading
+import time
 import boto3
 from shutil import copytree
 import pickle
@@ -271,6 +273,43 @@ def sync_to_spreadsheet(
     )
 
 
+def copy_static_assets():
+    """Copy JS/CSS to dist and inject cache version into service worker.
+
+    Returns the static_file_hashes dict for use by generate's template rendering.
+    """
+    jam_dir = pdir("dist")
+
+    static_files = []
+    dist_css = os.path.join(jam_dir, "css")
+    copytree(pdir("jamsite/css"), dist_css, dirs_exist_ok=True)
+    static_files.extend(get_files(dist_css))
+
+    dist_js = os.path.join(jam_dir, "js")
+    copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
+    static_files.extend(get_files(dist_js))
+
+    shutil.copy(pdir("jamsite/js/service_worker.js"), jam_dir)
+
+    # Include search_data.js in hash if it exists (from a prior generate)
+    search_data_path = os.path.join(jam_dir, "js", "search_data.js")
+    if os.path.exists(search_data_path):
+        static_files.append(search_data_path)
+
+    static_file_hashes = {}
+    for f in static_files:
+        rel_path = os.path.relpath(f, jam_dir)
+        static_file_hashes[rel_path] = get_hash(f)
+
+    combined = hashlib.md5("".join(sorted(static_file_hashes.values())).encode()).hexdigest()
+    sw_path = os.path.join(jam_dir, "service_worker.js")
+    sw_text = open(sw_path).read()
+    sw_text = re.sub(r"'jamsite-static-[^']*'", f"'jamsite-static-{combined[:8]}'", sw_text)
+    open(sw_path, "w").write(sw_text)
+
+    return static_file_hashes
+
+
 def generate(songs, songs_dir, playlists=None):
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(pdir("jamsite/templates")),
@@ -280,21 +319,6 @@ def generate(songs, songs_dir, playlists=None):
     jam_dir = pdir("dist")
     if not os.path.exists(jam_dir):
         os.makedirs(jam_dir)
-
-    static_files = []
-    static_file_hashes = {}
-    dist_css = os.path.join(jam_dir, "css")
-    copytree(pdir("jamsite/css"), dist_css, dirs_exist_ok=True)
-    static_files.extend(get_files(dist_css))
-
-    dist_js = os.path.join(jam_dir, "js")
-    copytree(pdir("jamsite/js"), dist_js, dirs_exist_ok=True)
-    static_files.extend(get_files(dist_js))
-
-    # Copy the service worker to the dist directory, injecting a build-specific
-    # cache version so deploys automatically bust the static cache.
-    # (Version is computed later after all hashes are known — placeholder for now)
-    shutil.copy(pdir("jamsite/js/service_worker.js"), jam_dir)
 
     si = SearchIndexer()
     for song in songs:
@@ -319,19 +343,8 @@ def generate(songs, songs_dir, playlists=None):
         f.write(
             f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str}; var PLAYLISTS_MAP = {playlists_map_str};"
         )
-    static_files.append(search_data_path)
 
-    for f in static_files:
-        rel_path = os.path.relpath(f, jam_dir)
-        static_file_hashes[rel_path] = get_hash(f)
-
-    # Inject a cache version derived from all static file hashes so every
-    # deploy that changes any asset automatically busts the browser cache.
-    combined = hashlib.md5("".join(sorted(static_file_hashes.values())).encode()).hexdigest()
-    sw_path = os.path.join(jam_dir, "service_worker.js")
-    sw_text = open(sw_path).read()
-    sw_text = re.sub(r"'jamsite-static-[^']*'", f"'jamsite-static-{combined[:8]}'", sw_text)
-    open(sw_path, "w").write(sw_text)
+    static_file_hashes = copy_static_assets()
 
     songs_by_title = sorted(songs, key=lambda s: s.title)
     songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
@@ -438,10 +451,10 @@ class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def serve(songs_dir):
-    os.chdir(pdir("dist"))
-    
-    # Create handler with songs directory
-    handler = lambda *args, **kwargs: JamSiteHandler(*args, songs_dir=songs_dir, **kwargs)
+    dist_dir = pdir("dist")
+
+    # Create handler with songs directory and dist as document root
+    handler = lambda *args, **kwargs: JamSiteHandler(*args, songs_dir=songs_dir, directory=dist_dir, **kwargs)
     
     # Set up content type mappings
     m = handler.extensions_map = http.server.SimpleHTTPRequestHandler.extensions_map.copy()
@@ -456,6 +469,46 @@ def serve(songs_dir):
     print("http://localhost:8000/")
     print(f"Serving songs from: {songs_dir}")
     server.serve_forever()
+
+
+def get_mtimes(directories):
+    """Get a dict of file path -> mtime for all files in the given directories."""
+    mtimes = {}
+    for d in directories:
+        for root, dirs, filenames in os.walk(d):
+            for filename in filenames:
+                filepath = os.path.join(root, filename)
+                mtimes[filepath] = os.path.getmtime(filepath)
+    return mtimes
+
+
+def dev(songs_dir):
+    dist_dir = pdir("dist")
+    if not os.path.exists(dist_dir):
+        print("Error: dist/ does not exist. Run --generate first.")
+        raise SystemExit(1)
+
+    copy_static_assets()
+    print("Static assets copied.")
+
+    # Start the HTTP server in a background thread
+    server_thread = threading.Thread(target=serve, args=(songs_dir,), daemon=True)
+    server_thread.start()
+
+    # Watch for changes
+    watch_dirs = [pdir("jamsite/css"), pdir("jamsite/js")]
+    last_mtimes = get_mtimes(watch_dirs)
+
+    try:
+        while True:
+            time.sleep(1)
+            current_mtimes = get_mtimes(watch_dirs)
+            if current_mtimes != last_mtimes:
+                copy_static_assets()
+                print("Static assets updated.")
+                last_mtimes = current_mtimes
+    except KeyboardInterrupt:
+        print("\nStopping dev server.")
 
 
 def pdir(name):
@@ -518,6 +571,7 @@ def main():
     group.add_argument("--check", action="store_true")
     group.add_argument("--resolve-duplicates", action="store_true")
     group.add_argument("--dropbox-auth", action="store_true")
+    group.add_argument("--dev", action="store_true")
     parser.add_argument("--check-years", action="store_true")
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--publish", action="store_true")
@@ -609,6 +663,8 @@ def main():
             resolve_duplicates(
                 duplicate_groups, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID
             )
+    if args.dev:
+        dev(songs_dir)
     if args.generate:
         songs = get_songs(args.cached)
         sheets_service = google_api.auth("sheets", "v4")
