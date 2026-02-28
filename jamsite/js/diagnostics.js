@@ -1,14 +1,16 @@
 (function() {
   function Diagnostics(container, indexIdMap) {
     var songCount = Array.isArray(indexIdMap) ? indexIdMap.length : Object.keys(indexIdMap).length;
+    var currentSiteVersion = '\u2014';
+    var currentPageSource = '\u2014';
+    var currentCachedCount = '\u2014';
 
-    // Render synchronously with placeholders so something always shows
-    function render(siteVersion, pageSource, cachedCount) {
+    function render() {
       var rows = [
         ['Songs', songCount],
-        ['Site version', siteVersion],
-        ['Page source', pageSource],
-        ['Cached PDFs', cachedCount],
+        ['Site version', currentSiteVersion],
+        ['Page source', currentPageSource],
+        ['Cached PDFs', currentCachedCount],
       ];
       var html = '<div class="diagnostics-label">Diagnostics</div><dl class="diagnostics-list">';
       for (var i = 0; i < rows.length; i++) {
@@ -18,14 +20,13 @@
       container.innerHTML = html;
     }
 
-    render('\u2014', '\u2014', '\u2014');
+    render();
 
     // Page source from navigation timing (sync)
-    var pageSource = '\u2014';
     try {
       var nav = performance.getEntriesByType('navigation')[0];
       if (nav) {
-        pageSource = nav.transferSize === 0 ? 'Cache' : 'Network';
+        currentPageSource = nav.transferSize === 0 ? 'Cache' : 'Network';
       }
     } catch(e) {}
 
@@ -35,53 +36,63 @@
       return staticKey ? staticKey.replace('jamsite-static-', '') : '\u2014';
     }).catch(function() { return '\u2014'; });
 
-    // Cached PDF count from IndexedDB (async, with timeout)
-    var idbPromise = new Promise(function(resolve) {
-      var done = false;
-      var timer = setTimeout(function() {
-        if (!done) { done = true; resolve('\u2014'); }
-      }, 3000);
+    function getCachedCount() {
+      return new Promise(function(resolve) {
+        var done = false;
+        var timer = setTimeout(function() {
+          if (!done) { done = true; resolve('\u2014'); }
+        }, 3000);
 
-      try {
-        var req = indexedDB.open('jamsite_offline', 1);
-        req.onupgradeneeded = function(e) {
-          var upgradeDb = e.target.result;
-          if (!upgradeDb.objectStoreNames.contains('songs')) {
-            upgradeDb.createObjectStore('songs', { keyPath: 'uuid' });
-          }
-        };
-        req.onsuccess = function() {
-          var db = req.result;
-          // If a deleteDatabase or version upgrade arrives, close immediately so it can proceed
-          db.onversionchange = function() { db.close(); };
-          if (done) { db.close(); return; }  // timeout already fired — close and bail
-          try {
-            var tx = db.transaction('songs', 'readonly');
-            var countReq = tx.objectStore('songs').count();
-            countReq.onsuccess = function() {
-              db.close();
-              if (!done) { done = true; clearTimeout(timer); resolve(countReq.result + ' / ' + songCount); }
-            };
-            countReq.onerror = function() {
+        try {
+          var req = indexedDB.open('jamsite_offline', 1);
+          req.onupgradeneeded = function(e) {
+            var upgradeDb = e.target.result;
+            if (!upgradeDb.objectStoreNames.contains('songs')) {
+              upgradeDb.createObjectStore('songs', { keyPath: 'uuid' });
+            }
+          };
+          req.onsuccess = function() {
+            var db = req.result;
+            db.onversionchange = function() { db.close(); };
+            if (done) { db.close(); return; }
+            try {
+              var tx = db.transaction('songs', 'readonly');
+              var countReq = tx.objectStore('songs').count();
+              countReq.onsuccess = function() {
+                db.close();
+                if (!done) { done = true; clearTimeout(timer); resolve(countReq.result + ' / ' + songCount); }
+              };
+              countReq.onerror = function() {
+                db.close();
+                if (!done) { done = true; clearTimeout(timer); resolve('\u2014'); }
+              };
+            } catch(e) {
               db.close();
               if (!done) { done = true; clearTimeout(timer); resolve('\u2014'); }
-            };
-          } catch(e) {
-            db.close();
+            }
+          };
+          req.onerror = function() {
             if (!done) { done = true; clearTimeout(timer); resolve('\u2014'); }
-          }
-        };
-        req.onerror = function() {
+          };
+        } catch(e) {
           if (!done) { done = true; clearTimeout(timer); resolve('\u2014'); }
-        };
-      } catch(e) {
-        if (!done) { done = true; clearTimeout(timer); resolve('\u2014'); }
-      }
+        }
+      });
+    }
+
+    Promise.all([siteVersionPromise, getCachedCount()]).then(function(results) {
+      currentSiteVersion = results[0];
+      currentCachedCount = results[1];
+      render();
     });
 
-    Promise.all([siteVersionPromise, idbPromise]).then(function(results) {
-      render(results[0], pageSource, results[1]);
-    });
+    // Public method to refresh the cached PDF count
+    this.refreshCachedCount = function() {
+      getCachedCount().then(function(count) {
+        currentCachedCount = count;
+        render();
+      });
+    };
   }
 
   window.Diagnostics = Diagnostics;

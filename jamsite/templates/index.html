@@ -115,8 +115,8 @@
               type: "START"
             });
           }
-          const menu = new Menu(document, syncWorker);
-          Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP);
+          const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP);
+          const menu = new Menu(document, syncWorker, diagnostics);
           // Show the main content and hide the loading spinner
           document.querySelector('.main-content').style.display = 'block';
           document.querySelector('.loading').style.display = 'none';
@@ -138,16 +138,20 @@
     
     // Register service worker and wait for it to be active
     if ('serviceWorker' in navigator) {
-      // When a new service worker takes over, reload to get fresh content
+      // When a new service worker replaces an existing one, reload to get fresh content.
+      // Only reload if we already had a controller — the initial claim should not trigger a reload.
+      var hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
+        if (hadController) {
+          window.location.reload();
+        }
       });
 
       console.log('Registering service worker');
       navigator.serviceWorker.register('/service_worker.js')
         .then(registration => {
           console.log('Service Worker registered with scope:', registration.scope);
-          
+
           // Wait for the service worker to be active
           var incomingSw = registration.installing || registration.waiting;
           if (registration.active && !incomingSw) {

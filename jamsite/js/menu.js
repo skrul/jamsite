@@ -1,7 +1,8 @@
 class Menu {
-  constructor(document, syncWorker) {
+  constructor(document, syncWorker, diagnostics) {
     this.document = document;
     this.syncWorker = syncWorker;
+    this.diagnostics = diagnostics;
     
     // Cache DOM elements
     this.menuToggle = document.getElementById('side-menu-toggle');
@@ -95,6 +96,16 @@ class Menu {
       await Promise.all(registrations.map(r => r.unregister()));
     } catch(e) {}
 
+    // Delete IndexedDB
+    try {
+      await new Promise((resolve, reject) => {
+        const req = indexedDB.deleteDatabase('jamsite_offline');
+        req.onsuccess = resolve;
+        req.onerror = reject;
+        req.onblocked = resolve;
+      });
+    } catch(e) {}
+
     // Clear local storage
     localStorage.clear();
 
@@ -134,6 +145,7 @@ class Menu {
           if (this.offlineEnabled.checked) {
             this.offlineSyncNow.style.display = 'block';
           }
+          this.diagnostics.refreshCachedCount();
           break;
           
         case 'error':
@@ -146,6 +158,7 @@ class Menu {
           this.offlineStatusText.textContent = 'Offline storage cleared';
           this.offlineProgress.style.display = 'none';
           this.offlineSyncNow.style.display = 'none';
+          this.diagnostics.refreshCachedCount();
           break;
       }
     }
