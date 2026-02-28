@@ -1,5 +1,6 @@
 (function() {
-  function SongActions() {
+  function SongActions(broadcast) {
+    this.broadcast = broadcast;
     this.init();
     this.qrPopup = new QRCodePopup();
   }
@@ -31,6 +32,15 @@
           that.handleShareQR(e.target);
         }
       });
+
+      // Handle share with room clicks
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('share-with-room')) {
+          e.preventDefault();
+          e.stopPropagation();
+          that.handleShareWithRoom(e.target);
+        }
+      });
     },
 
     togglePopover: function(toggle) {
@@ -49,16 +59,32 @@
     handleShareQR: function(link) {
       var uuid = link.getAttribute('data-uuid');
       var row = document.getElementById(uuid);
-      
+
       // Get song title and artist from the row
       var title = row.querySelector('.song-title-text').textContent.trim();
       var artist = row.cells[1].textContent.trim();
-      
+
       // Close the popover
       this.closeAllPopovers();
-      
+
       // Show the QR code popup
       this.qrPopup.showQRCode(uuid, title, artist);
+    },
+
+    handleShareWithRoom: function(link) {
+      var uuid = link.getAttribute('data-uuid');
+      var row = document.getElementById(uuid);
+      var title = row.querySelector('.song-title-text').textContent.trim();
+      var artist = row.cells[1].textContent.trim();
+
+      this.closeAllPopovers();
+      this.broadcast.send(uuid, title, artist);
+
+      // Brief green flash as confirmation to the sender
+      row.classList.add('broadcast-sent');
+      setTimeout(function() {
+        row.classList.remove('broadcast-sent');
+      }, 1000);
     }
   }
 

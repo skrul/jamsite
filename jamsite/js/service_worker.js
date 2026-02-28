@@ -16,6 +16,7 @@ const STATIC_FILES = [
   '/js/playlist.js',
   '/js/random.js',
   '/js/diagnostics.js',
+  '/js/broadcast.js',
   '/js/song_actions.js',
   '/js/menu.js',
   '/js/offline_preferences.js',
@@ -56,6 +57,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
+  // Never cache or intercept API/SSE requests
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   // Handle PDF files specially
   if (url.pathname.startsWith('/songs/') && url.pathname.endsWith('.pdf')) {
     event.respondWith(handlePdfRequest(event.request));

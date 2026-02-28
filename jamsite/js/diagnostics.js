@@ -31,10 +31,12 @@
     } catch(e) {}
 
     // Site version from SW cache name (async)
-    var siteVersionPromise = caches.keys().then(function(keys) {
-      var staticKey = keys.find(function(k) { return k.startsWith('jamsite-static-'); });
-      return staticKey ? staticKey.replace('jamsite-static-', '') : '\u2014';
-    }).catch(function() { return '\u2014'; });
+    var siteVersionPromise = typeof caches !== 'undefined'
+      ? caches.keys().then(function(keys) {
+          var staticKey = keys.find(function(k) { return k.startsWith('jamsite-static-'); });
+          return staticKey ? staticKey.replace('jamsite-static-', '') : '\u2014';
+        }).catch(function() { return '\u2014'; })
+      : Promise.resolve('\u2014');
 
     function getCachedCount() {
       return new Promise(function(resolve) {

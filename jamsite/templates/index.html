@@ -89,6 +89,7 @@
         .then(() => loadScript('js/playlist.js'))
         .then(() => loadScript('js/random.js'))
         .then(() => loadScript('js/diagnostics.js'))
+        .then(() => loadScript('js/broadcast.js'))
         .then(() => loadScript('js/song_actions.js'))
         .then(() => loadScript('js/menu.js'))
         .then(() => loadScript('js/offline_preferences.js'))
@@ -104,7 +105,8 @@
           const s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP, PLAYLISTS_MAP);
           const pl = new Playlist(document.getElementById('playlist-buttons'), s, document.getElementById('side-menu'));
           const r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
-          const sa = new SongActions();
+          const broadcast = new Broadcast();
+          const sa = new SongActions(broadcast);
 
           const syncWorker = new Worker('js/sync_worker.js');
           syncWorker.onmessage = function(event) {
@@ -286,6 +288,7 @@
             <div class="song-actions">
               <span class="song-actions-toggle">⋮</span>
               <div class="song-actions-popover">
+                <a href="#" class="song-actions-item share-with-room" data-uuid="{{ song.uuid }}">Share with room</a>
                 <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}">Share via QR code</a>
               </div>
             </div>

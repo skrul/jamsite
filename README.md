@@ -89,6 +89,14 @@ uv run jamsite --check --check-years    # also check song years via MusicBrainz
 uv run jamsite --publish --aws-profile <profile>
 ```
 
+## Share with room
+
+During a jam session, tap the three-dots menu on any song and choose "Share with room". This sends a toast notification to everyone else's browser with the song title and artist. Tapping the toast opens the PDF in a new tab.
+
+This uses Server-Sent Events (SSE) via a lightweight Python broadcast server that runs alongside nginx. Broadcasts are scoped to the /24 subnet, so different groups on different networks won't interfere with each other.
+
+A simple admin page at `/api/admin` shows currently connected clients grouped by subnet.
+
 ## Deploying to production
 
 On the server (`jamsite.local`):

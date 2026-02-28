@@ -9,6 +9,10 @@ uv run jamsite --generate
 echo "Copying generated files to nginx html directory..."
 cp -r /src/dist/* /usr/share/nginx/html/
 
+# Start the broadcast server in the background
+echo "Starting broadcast server..."
+uv run python -m jamsite.broadcast &
+
 # Start nginx
 echo "Starting nginx..."
 exec nginx -g 'daemon off;'

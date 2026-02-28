@@ -422,19 +422,27 @@ def get_songs(cache):
 
 
 class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, songs_dir=None, **kwargs):
+    def __init__(self, *args, songs_dir=None, broadcast_hub=None, **kwargs):
         self.songs_dir = songs_dir
+        self.broadcast_hub = broadcast_hub
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        if self.path.startswith('/songs/'):
+        if self.path == '/api/events' and self.broadcast_hub:
+            from .broadcast import handle_sse
+            handle_sse(self, self.broadcast_hub)
+        elif self.path == '/api/health' and self.broadcast_hub:
+            from .broadcast import handle_health
+            handle_health(self, self.broadcast_hub)
+        elif self.path == '/api/admin' and self.broadcast_hub:
+            from .broadcast import handle_admin
+            handle_admin(self, self.broadcast_hub)
+        elif self.path.startswith('/songs/'):
             relative_path = self.path[7:]  # Remove '/songs/'
             file_path = os.path.join(self.songs_dir, relative_path)
-            
             try:
                 with open(file_path, 'rb') as f:
                     self.send_response(200)
-                    # Set content type for PDF files
                     if file_path.lower().endswith('.pdf'):
                         self.send_header('Content-Type', 'application/pdf')
                     else:
@@ -446,25 +454,42 @@ class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self.send_error(500, str(e))
         else:
-            # Handle all other requests using the default static file handler
             super().do_GET()
 
+    def do_POST(self):
+        if self.path == '/api/send' and self.broadcast_hub:
+            from .broadcast import handle_send
+            handle_send(self, self.broadcast_hub)
+        else:
+            self.send_error(405)
 
-def serve(songs_dir):
+    def do_OPTIONS(self):
+        if self.path.startswith('/api/') and self.broadcast_hub:
+            from .broadcast import handle_cors_preflight
+            handle_cors_preflight(self)
+        else:
+            self.send_error(405)
+
+
+def serve(songs_dir, broadcast_hub=None):
     dist_dir = pdir("dist")
 
-    # Create handler with songs directory and dist as document root
-    handler = lambda *args, **kwargs: JamSiteHandler(*args, songs_dir=songs_dir, directory=dist_dir, **kwargs)
-    
+    # Create handler with songs directory, dist as document root, and optional broadcast hub
+    handler = lambda *args, **kwargs: JamSiteHandler(
+        *args, songs_dir=songs_dir, broadcast_hub=broadcast_hub, directory=dist_dir, **kwargs
+    )
+
     # Set up content type mappings
     m = handler.extensions_map = http.server.SimpleHTTPRequestHandler.extensions_map.copy()
     m[""] = "text/plain"
     m.update(dict([(k, v + ";charset=UTF-8") for k, v in m.items()]))
 
-    server = socketserver.TCPServer(("", PORT), handler, bind_and_activate=False)
-    server.allow_reuse_address = True
-    server.server_bind()
-    server.server_activate()
+    # Use ThreadingMixIn so SSE connections don't block other requests
+    class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+        daemon_threads = True
+        allow_reuse_address = True
+
+    server = ThreadedTCPServer(("", PORT), handler)
     print("serving at port", PORT)
     print("http://localhost:8000/")
     print(f"Serving songs from: {songs_dir}")
@@ -491,8 +516,9 @@ def dev(songs_dir):
     copy_static_assets()
     print("Static assets copied.")
 
-    # Start the HTTP server in a background thread
-    server_thread = threading.Thread(target=serve, args=(songs_dir,), daemon=True)
+    # Start the HTTP server with broadcast support in a background thread
+    from .broadcast import hub
+    server_thread = threading.Thread(target=serve, args=(songs_dir, hub), daemon=True)
     server_thread.start()
 
     # Watch for changes
