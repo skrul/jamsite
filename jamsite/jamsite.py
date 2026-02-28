@@ -317,8 +317,8 @@ def generate(songs, songs_dir, playlists=None):
     )
 
     jam_dir = pdir("dist")
-    if not os.path.exists(jam_dir):
-        os.makedirs(jam_dir)
+    os.makedirs(os.path.join(jam_dir, "js"), exist_ok=True)
+    os.makedirs(os.path.join(jam_dir, "css"), exist_ok=True)
 
     si = SearchIndexer()
     for song in songs:
