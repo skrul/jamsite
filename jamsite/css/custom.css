@@ -67,6 +67,16 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   margin: 0px;
 }
 
+.decade-filter button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#random:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .navbar-content {
   height: 100%;
   display: flex;

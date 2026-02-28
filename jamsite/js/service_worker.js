@@ -30,7 +30,7 @@ self.addEventListener('install', event => {
     caches.open(STATIC_CACHE)
       .then(cache => {
         console.log('Caching static files');
-        return cache.addAll(STATIC_FILES);
+        return cache.addAll(STATIC_FILES.map(url => new Request(url, { cache: 'reload' })));
       })
       .then(() => self.skipWaiting())
   );

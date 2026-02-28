@@ -29,6 +29,8 @@ async function initDB() {
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
             db = request.result;
+            // Allow deleteDatabase (Reset App) to proceed even while sync is open
+            db.onversionchange = () => { db.close(); db = null; };
             resolve(db);
         };
 

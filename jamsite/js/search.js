@@ -55,6 +55,9 @@
       this.searchInput.readOnly = true;
       this.searchInput.classList.add('playlist-active');
       if (this.playlistClearBtn) this.playlistClearBtn.style.display = 'block';
+      document.querySelectorAll('#decade-filter .filter').forEach(function(btn) { btn.disabled = true; });
+      var randomBtn = document.getElementById('random');
+      if (randomBtn) randomBtn.disabled = true;
       this.search('');
     },
 
@@ -64,6 +67,9 @@
       this.searchInput.value = '';
       this.searchInput.classList.remove('playlist-active');
       if (this.playlistClearBtn) this.playlistClearBtn.style.display = 'none';
+      document.querySelectorAll('#decade-filter .filter').forEach(function(btn) { btn.disabled = false; });
+      var randomBtn = document.getElementById('random');
+      if (randomBtn) randomBtn.disabled = false;
       document.dispatchEvent(new CustomEvent('playlistcleared'));
       this.search('');
     },
