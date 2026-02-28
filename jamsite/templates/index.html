@@ -280,7 +280,7 @@
       <table id="songs">
         <tbody>
         {% for song in songs %}
-        <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}.pdf#toolbar=0">
+        <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0">
           <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}{% if song.key %} ({{ song.key }}){% endif %}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
           <td data-sort="{{ song.artist_sort }}">{{ song.artist }}</td>
           <td>{{ song.year }}</td>
@@ -288,8 +288,8 @@
             <div class="song-actions">
               <span class="song-actions-toggle">⋮</span>
               <div class="song-actions-popover">
-                <a href="#" class="song-actions-item share-with-room" data-uuid="{{ song.uuid }}">Share with room</a>
-                <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}">Share via QR code</a>
+                <a href="#" class="song-actions-item share-with-room" data-uuid="{{ song.uuid }}" data-slug="{{ song.slug }}">Share with room</a>
+                <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}" data-slug="{{ song.slug }}">Share via QR code</a>
               </div>
             </div>
           </td>

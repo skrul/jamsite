@@ -1,4 +1,30 @@
+import re
 from collections import defaultdict
+
+from unidecode import unidecode
+
+
+def slugify(text):
+    """Convert text to a URL-friendly slug."""
+    text = unidecode(text)
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-')
+
+
+def compute_slugs(songs):
+    """Compute and assign slug to each song."""
+    for song in songs:
+        parts = []
+        if song.artist:
+            parts.append(slugify(song.artist))
+        parts.append('--')
+        if song.title:
+            parts.append(slugify(song.title))
+        slug = ''.join(parts)
+        if song.key:
+            slug += '-' + slugify(song.key)
+        song.slug = slug
 
 
 class Song:
@@ -46,6 +72,7 @@ class Song:
         self.deleted = deleted
         self.skip = skip
         self.hash = hash
+        self.slug = None
 
     def __repr__(self):
         a = [

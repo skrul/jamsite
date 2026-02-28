@@ -151,7 +151,9 @@ self.addEventListener('fetch', event => {
 // Special handler for PDF requests
 async function handlePdfRequest(request) {
   const pdfCache = await caches.open(PDF_CACHE);
-  const uuid = request.url.split('/').pop().split('.')[0];
+  // Extract UUID from both /songs/{uuid}.pdf and /songs/{uuid}/{slug}.pdf
+  const pathParts = new URL(request.url).pathname.replace('/songs/', '').split('/');
+  const uuid = pathParts[0].split('.')[0];
   const cachedResponse = await pdfCache.match(`/pdfs/${uuid}`);  
   if (cachedResponse) {
     // Create new response with original URL path

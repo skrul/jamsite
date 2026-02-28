@@ -108,6 +108,7 @@ def handle_send(handler, broadcast_hub):
     message = {
         "type": "song",
         "uuid": data["uuid"],
+        "slug": data.get("slug", ""),
         "title": data["title"],
         "artist": data["artist"],
     }

@@ -1,7 +1,7 @@
 import os
 import unicodedata
 from . import google_api
-from jamsite.song import Song
+from jamsite.song import Song, compute_slugs
 import re
 import argparse
 import jinja2
@@ -333,21 +333,25 @@ def generate(songs, songs_dir, playlists=None):
             if indices:
                 playlists_map[name] = indices
 
+    songs_by_title = sorted(songs, key=lambda s: s.title)
+    songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
+    compute_slugs(songs_by_title)
+
     index_str = json.dumps(si.index_as_dict(), separators=(",", ":"))
     id_map_str = json.dumps(si.uuids, separators=(",", ":"))
     decades_map_str = json.dumps(si.decades, separators=(",", ":"))
     playlists_map_str = json.dumps(playlists_map, separators=(",", ":"))
+    uuid_to_slug = {s.uuid: s.slug for s in songs_by_title}
+    slug_map = [uuid_to_slug.get(u, "") for u in si.uuids]
+    slug_map_str = json.dumps(slug_map, separators=(",", ":"))
     decades = si.decades
     search_data_path = os.path.join(jam_dir, "js", "search_data.js")
     with open(search_data_path, "w") as f:
         f.write(
-            f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str}; var PLAYLISTS_MAP = {playlists_map_str};"
+            f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str}; var PLAYLISTS_MAP = {playlists_map_str}; var SLUG_MAP = {slug_map_str};"
         )
 
     static_file_hashes = copy_static_assets()
-
-    songs_by_title = sorted(songs, key=lambda s: s.title)
-    songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
 
     def render(name):
         decade_list = list(decades.keys())
@@ -374,7 +378,7 @@ def generate(songs, songs_dir, playlists=None):
        	    metadata_path = os.path.join(songs_dir, song.uuid + ".json")
             with open(metadata_path, "r") as f:
                 metadata = json.load(f)
-                songs_json.append({"uuid": song.uuid, "hash": metadata["hash"]})
+                songs_json.append({"uuid": song.uuid, "hash": metadata["hash"], "slug": song.slug})
         except Exception as e:
             print(f"⚠️ Unexpected error with song {song.uuid}: {e}")
     with open(os.path.join(jam_dir, "songs.json"), "w") as f:
@@ -444,7 +448,14 @@ class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
             from .broadcast import handle_admin
             handle_admin(self, self.broadcast_hub)
         elif self.path.startswith('/songs/'):
-            relative_path = self.path[7:]  # Remove '/songs/'
+            # Support both /songs/{uuid}.pdf and /songs/{uuid}/{slug}.pdf
+            parts = self.path[7:].split('/')  # Remove '/songs/'
+            if len(parts) == 2:
+                # New format: /songs/{uuid}/{slug}.pdf — use uuid
+                relative_path = parts[0] + '.pdf'
+            else:
+                # Old format: /songs/{uuid}.pdf
+                relative_path = parts[0]
             file_path = os.path.join(self.songs_dir, relative_path)
             try:
                 with open(file_path, 'rb') as f:

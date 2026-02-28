@@ -31,7 +31,7 @@
       };
     },
 
-    send: function(uuid, title, artist) {
+    send: function(uuid, slug, title, artist) {
       if (!this.clientId) return;
 
       fetch('/api/send', {
@@ -40,6 +40,7 @@
         body: JSON.stringify({
           senderId: this.clientId,
           uuid: uuid,
+          slug: slug,
           title: title,
           artist: artist
         })
@@ -89,7 +90,10 @@
 
       toast.addEventListener('click', function() {
         that._dismissToast(toast);
-        window.open('/songs/' + data.uuid + '.pdf#toolbar=0', '_blank');
+        var songUrl = data.slug
+          ? '/songs/' + data.uuid + '/' + data.slug + '.pdf#toolbar=0'
+          : '/songs/' + data.uuid + '.pdf#toolbar=0';
+        window.open(songUrl, '_blank');
       });
 
       this.toastContainer.appendChild(toast);

@@ -58,6 +58,7 @@
 
     handleShareQR: function(link) {
       var uuid = link.getAttribute('data-uuid');
+      var slug = link.getAttribute('data-slug');
       var row = document.getElementById(uuid);
 
       // Get song title and artist from the row
@@ -68,17 +69,18 @@
       this.closeAllPopovers();
 
       // Show the QR code popup
-      this.qrPopup.showQRCode(uuid, title, artist);
+      this.qrPopup.showQRCode(uuid, slug, title, artist);
     },
 
     handleShareWithRoom: function(link) {
       var uuid = link.getAttribute('data-uuid');
+      var slug = link.getAttribute('data-slug');
       var row = document.getElementById(uuid);
       var title = row.querySelector('.song-title-text').textContent.trim();
       var artist = row.cells[1].textContent.trim();
 
       this.closeAllPopovers();
-      this.broadcast.send(uuid, title, artist);
+      this.broadcast.send(uuid, slug, title, artist);
 
       // Brief green flash as confirmation to the sender
       row.classList.add('broadcast-sent');

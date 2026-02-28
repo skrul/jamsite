@@ -55,19 +55,19 @@
       document.body.appendChild(modal);
     },
     
-    showQRCode: function(songUuid, songTitle, songArtist) {
+    showQRCode: function(songUuid, songSlug, songTitle, songArtist) {
       // Get the modal
       var modal = document.getElementById('qr-modal');
-      
+
       // Update song info
       var songInfo = document.getElementById('qr-song-info');
       songInfo.innerHTML = '<h3>' + songTitle + '</h3>';
       if (songArtist) {
         songInfo.innerHTML += '<p>' + songArtist + '</p>';
       }
-      
+
       // Generate the URL
-      var url = window.location.origin + '/songs/' + songUuid + '.pdf';
+      var url = window.location.origin + '/songs/' + songUuid + '/' + songSlug + '.pdf';
       
       // Clear previous QR code
       var qrContainer = document.getElementById('qr-code-container');

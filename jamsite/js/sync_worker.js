@@ -53,9 +53,9 @@ function sendProgress(type, data) {
 }
 
 // Download a PDF file and store it in the cache
-async function downloadPDF(uuid, hash) {
+async function downloadPDF(uuid, slug, hash) {
     try {
-        const url = `/songs/${uuid}.pdf`;
+        const url = slug ? `/songs/${uuid}/${slug}.pdf` : `/songs/${uuid}.pdf`;
         console.log('Downloading PDF:', uuid, url);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -161,7 +161,7 @@ async function syncCycle() {
                     message: `Downloading...`
                 });
 
-                const success = await downloadPDF(song.uuid, song.hash);
+                const success = await downloadPDF(song.uuid, song.slug, song.hash);
                 if (success) {
                     const writeTransaction = db.transaction([STORE_NAME], 'readwrite');
                     const writeStore = writeTransaction.objectStore(STORE_NAME);
