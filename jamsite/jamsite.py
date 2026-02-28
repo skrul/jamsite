@@ -403,22 +403,28 @@ def publish(aws_profile):
             )
 
 
-def get_songs(cache):
-    cache_file = pdir("songs.pickle")
-    if cache:
-        if os.path.exists(cache_file):
-            with open(cache_file, "rb") as songs_pickle:
-                return pickle.load(songs_pickle)
+def get_songs_and_playlists(cache, songs_dir):
+    cache_file = os.path.join(songs_dir, "songs.pickle") if os.path.isdir(songs_dir) else pdir("songs.pickle")
+    if cache and os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            data = pickle.load(f)
+            # Handle old pickle format (just a list of songs)
+            if isinstance(data, list):
+                return data, {}
+            return data["songs"], data["playlists"]
     sheets_service = google_api.auth("sheets", "v4")
     skrul_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
     print(f"skrul song count: {len(skrul_songs_by_row)}")
     gary_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
     print(f"gary song count: {len(gary_songs_by_row)}")
     songs = list(skrul_songs_by_row.values()) + list(gary_songs_by_row.values())
-    if cache:
-        with open(cache_file, "wb") as songs_pickle:
-            pickle.dump(songs, songs_pickle)
-    return songs
+    playlists = {}
+    for sheet_name, title in read_playlists_index(sheets_service):
+        print(f"Reading playlist: {title} ({sheet_name})")
+        playlists[title] = read_playlist_sheet(sheets_service, sheet_name)
+    with open(cache_file, "wb") as f:
+        pickle.dump({"songs": songs, "playlists": playlists}, f)
+    return songs, playlists
 
 
 class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
@@ -692,12 +698,7 @@ def main():
     if args.dev:
         dev(songs_dir)
     if args.generate:
-        songs = get_songs(args.cached)
-        sheets_service = google_api.auth("sheets", "v4")
-        playlists = {}
-        for sheet_name, title in read_playlists_index(sheets_service):
-            print(f"Reading playlist: {title} ({sheet_name})")
-            playlists[title] = read_playlist_sheet(sheets_service, sheet_name)
+        songs, playlists = get_songs_and_playlists(args.cached, songs_dir)
         generate(songs, songs_dir, playlists=playlists)
     if args.serve:
         serve(songs_dir)
