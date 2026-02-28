@@ -108,6 +108,53 @@
   color: #33C3F0;
 }
 
+/* Playlist section */
+.playlist-label {
+  background-color: #f0f0f0;
+  color: #333;
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 -20px 8px -20px;
+  padding: 10px 20px;
+}
+
+#playlist-buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+.playlist-btn {
+  background: none !important;
+  border: none !important;
+  color: #333;
+  cursor: pointer;
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.4;
+  margin: 0;
+  padding: 6px 0;
+  text-align: left;
+  text-transform: none;
+  width: 100%;
+}
+
+.playlist-btn:hover,
+.playlist-btn:focus {
+  background: none !important;
+  border: none !important;
+  color: #33C3F0;
+}
+
+button.playlist-btn.button-primary {
+  background: none !important;
+  border: none !important;
+  color: #333 !important;
+  font-weight: 700;
+}
+
 /* Reset App button */
 .reset-app-item {
   text-align: center;

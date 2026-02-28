@@ -80,6 +80,35 @@ nav a, nav a:link, nav a:hover, nav a:active, nav a:visited {
   width: 100%;
 }
 
+#search.playlist-active {
+  background-color: #e8f4fb;
+  color: #1a7fad;
+  font-style: italic;
+  padding-right: 2rem;
+}
+
+.navbar-search {
+  position: relative;
+}
+
+.playlist-clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #999;
+  padding: 0;
+  line-height: 1;
+}
+
+.playlist-clear-btn:hover {
+  color: #333;
+}
+
 #songs {
   width: 100%;
   margin-top: 10rem;

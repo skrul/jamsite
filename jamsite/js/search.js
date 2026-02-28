@@ -1,9 +1,9 @@
 (function() {
-  function Search(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap) {
-    this.init(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap);
+  function Search(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap, playlistsMap) {
+    this.init(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap, playlistsMap);
   }
   Search.prototype = {
-    init: function(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap) {
+    init: function(searchInput, songTable, searchFilter, indexData, indexIdMap, decadesMap, playlistsMap) {
       var that = this;
       that.searchInput = searchInput;
       that.searchFilter = searchFilter;
@@ -11,23 +11,69 @@
       that.indexData = indexData;
       that.indexIdMap = indexIdMap;
       that.decadesMap = decadesMap;
-      
-      // Show/hide clear button based on input value
+      that.playlistsMap = playlistsMap || {};
+      that.activePlaylist = null;
+      that.playlistClearBtn = document.getElementById('playlist-clear');
+      if (that.playlistClearBtn) {
+        that.playlistClearBtn.addEventListener('click', function() {
+          that.clearPlaylist();
+        });
+      }
+
       searchInput.addEventListener(
         'input',
         function(e) {
-          setTimeout(function() {
-            that.search(e.target.value);
-          }, 150);
+          // X button was clicked while playlist was active — clear the playlist
+          if (that.activePlaylist !== null && e.target.value === '') {
+            that.clearPlaylist();
+            return;
+          }
+          if (!that.activePlaylist) {
+            setTimeout(function() {
+              that.search(e.target.value);
+            }, 150);
+          }
         },
         false
       );
+
+      // 'search' event fires on clear-button click in some browsers
+      searchInput.addEventListener(
+        'search',
+        function(e) {
+          if (that.activePlaylist !== null && e.target.value === '') {
+            that.clearPlaylist();
+          }
+        },
+        false
+      );
+    },
+
+    setPlaylist: function(name) {
+      this.activePlaylist = name;
+      this.searchInput.value = 'Playlist: ' + name;
+      this.searchInput.readOnly = true;
+      this.searchInput.classList.add('playlist-active');
+      if (this.playlistClearBtn) this.playlistClearBtn.style.display = 'block';
+      this.search('');
+    },
+
+    clearPlaylist: function() {
+      this.activePlaylist = null;
+      this.searchInput.readOnly = false;
+      this.searchInput.value = '';
+      this.searchInput.classList.remove('playlist-active');
+      if (this.playlistClearBtn) this.playlistClearBtn.style.display = 'none';
+      document.dispatchEvent(new CustomEvent('playlistcleared'));
+      this.search('');
     },
 
     /* returns a set of all songids matching active filters */
     filteredSongIdSet: function() {
       var that = this;
       var res = new Set();
+
+      // Decade filter
       this.searchFilter.active().forEach(function(decade) {
         if (that.decadesMap[decade] !== undefined) {
           that.decadesMap[decade].forEach(function(songid) {
@@ -35,15 +81,27 @@
           });
         }
       });
+
+      // Playlist filter
+      if (this.activePlaylist && this.playlistsMap[this.activePlaylist]) {
+        var playlistSet = new Set(this.playlistsMap[this.activePlaylist]);
+        if (res.size > 0) {
+          res = new Set([...res].filter(function(x) { return playlistSet.has(x); }));
+        } else {
+          res = playlistSet;
+        }
+      }
+
       return res;
     },
 
     search: function(s) {
       var res = null;
       var filteredSongs = this.filteredSongIdSet();
+      var hasActiveFilters = this.searchFilter.active().size > 0 || this.activePlaylist !== null;
 
       if (s == '') { // No search terms in searchbar
-        if (this.searchFilter.active().size == 0) { // and no filters
+        if (!hasActiveFilters) { // and no filters
           // just display everything
           this.songTable.showAllRows();
           return;

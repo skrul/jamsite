@@ -86,6 +86,7 @@
         .then(() => loadScript('js/song_table.js'))
         .then(() => loadScript('js/filter.js'))
         .then(() => loadScript('js/search.js'))
+        .then(() => loadScript('js/playlist.js'))
         .then(() => loadScript('js/random.js'))
         .then(() => loadScript('js/diagnostics.js'))
         .then(() => loadScript('js/song_actions.js'))
@@ -100,7 +101,8 @@
           const st = new SongTable(document.getElementById("songs"));
           st.sort('title');
           const f = new Filter(document.getElementById("decade-filter"));
-          const s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP);
+          const s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP, PLAYLISTS_MAP);
+          const pl = new Playlist(document.getElementById('playlist-buttons'), s, document.getElementById('side-menu'));
           const r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
           const sa = new SongActions();
 
@@ -200,6 +202,7 @@
           </div>
           <div class="navbar-search">
             <input type="search" id="search">
+            <button id="playlist-clear" class="playlist-clear-btn" style="display:none">✕</button>
           </div>
           <div class="navbar-random">
             <button class="icon-button" id="random" title="Random Song">🔀</button>
@@ -237,6 +240,16 @@
                 </div>
               </div>
             </li>
+            {% if playlist_names %}
+            <li class="side-menu-item">
+              <div class="playlist-label">Playlists</div>
+              <div id="playlist-buttons">
+                {% for name in playlist_names %}
+                <button class="playlist-btn" data-playlist="{{ name }}">{{ name }}</button>
+                {% endfor %}
+              </div>
+            </li>
+            {% endif %}
           </ul>
         </div>
         <div class="side-menu-footer">

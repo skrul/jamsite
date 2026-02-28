@@ -13,6 +13,7 @@ const STATIC_FILES = [
   '/js/song_table.js',
   '/js/filter.js',
   '/js/search.js',
+  '/js/playlist.js',
   '/js/random.js',
   '/js/diagnostics.js',
   '/js/song_actions.js',

@@ -143,6 +143,42 @@ def read_songs_spreadsheet(service, sheet):
     return songs_by_row
 
 
+def read_playlists_index(service):
+    """Read the 'playlists' tab and return list of (sheet_name, title) tuples."""
+    result = (
+        service.spreadsheets()
+        .values()
+        .get(spreadsheetId=JAM_SONGS_SPREADSHEET_ID, range="playlists")
+        .execute()
+    )
+    values = result.get("values", [])
+    playlists = []
+    for row, value in enumerate(values):
+        if row == 0:
+            continue
+        if len(value) >= 2 and value[0].strip() and value[1].strip():
+            playlists.append((value[0].strip(), value[1].strip()))
+    return playlists
+
+
+def read_playlist_sheet(service, sheet_name):
+    """Read a playlist tab and return list of matched UUIDs (col C, index 2)."""
+    result = (
+        service.spreadsheets()
+        .values()
+        .get(spreadsheetId=JAM_SONGS_SPREADSHEET_ID, range=sheet_name)
+        .execute()
+    )
+    values = result.get("values", [])
+    uuids = []
+    for row, value in enumerate(values):
+        if row == 0:
+            continue
+        if len(value) > 2 and value[2].strip():
+            uuids.append(value[2].strip())
+    return uuids
+
+
 def sync_to_spreadsheet(
     service, sheet, drive_songs, existing_songs_by_row,
     artists_by_name=None, mb=None,
@@ -235,7 +271,7 @@ def sync_to_spreadsheet(
     )
 
 
-def generate(songs, songs_dir):
+def generate(songs, songs_dir, playlists=None):
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(pdir("jamsite/templates")),
         autoescape=jinja2.select_autoescape(["html"]),
@@ -265,14 +301,23 @@ def generate(songs, songs_dir):
         if song.skip or song.deleted:
             continue
         si.add_song(song)
+    uuid_to_index = {uuid: i for i, uuid in enumerate(si.uuids)}
+    playlists_map = {}
+    if playlists:
+        for name, uuids in playlists.items():
+            indices = [uuid_to_index[u] for u in uuids if u in uuid_to_index]
+            if indices:
+                playlists_map[name] = indices
+
     index_str = json.dumps(si.index_as_dict(), separators=(",", ":"))
     id_map_str = json.dumps(si.uuids, separators=(",", ":"))
     decades_map_str = json.dumps(si.decades, separators=(",", ":"))
+    playlists_map_str = json.dumps(playlists_map, separators=(",", ":"))
     decades = si.decades
     search_data_path = os.path.join(jam_dir, "js", "search_data.js")
     with open(search_data_path, "w") as f:
         f.write(
-            f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str};"
+            f"var INDEX_DATA = {index_str}; var INDEX_ID_MAP = {id_map_str}; var DECADES_MAP = {decades_map_str}; var PLAYLISTS_MAP = {playlists_map_str};"
         )
     static_files.append(search_data_path)
 
@@ -302,6 +347,7 @@ def generate(songs, songs_dir):
         template.stream(
             songs=songs_by_title,
             decades=decade_list,
+            playlist_names=sorted(playlists_map.keys()),
             static_file_hashes=static_file_hashes,
         ).dump(os.path.join(jam_dir, name))
 
@@ -565,7 +611,12 @@ def main():
             )
     if args.generate:
         songs = get_songs(args.cached)
-        generate(songs, songs_dir)
+        sheets_service = google_api.auth("sheets", "v4")
+        playlists = {}
+        for sheet_name, title in read_playlists_index(sheets_service):
+            print(f"Reading playlist: {title} ({sheet_name})")
+            playlists[title] = read_playlist_sheet(sheets_service, sheet_name)
+        generate(songs, songs_dir, playlists=playlists)
     if args.serve:
         serve(songs_dir)
     if args.publish:
