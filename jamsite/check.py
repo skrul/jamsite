@@ -110,11 +110,11 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
 
         # 1. Missing fields
         missing = []
-        if not song.title:
+        if not song.title or not song.title.strip():
             missing.append("title")
-        if not song.year:
+        if not song.year or not song.year.strip():
             missing.append("year")
-        if not song.artist:
+        if not song.artist or not song.artist.strip():
             missing.append("artist")
         if missing:
             title_str = song.title or "(untitled)"
@@ -175,7 +175,7 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
     for row, song in songs_by_row.items():
         if song.deleted or song.skip:
             continue
-        if song.artist and unicodedata.normalize("NFC", song.artist.lower()) not in artists_by_name:
+        if song.artist and song.artist.strip() and unicodedata.normalize("NFC", song.artist.strip().lower()) not in artists_by_name:
             artist_usage[song.artist] += 1
     for artist_name, count in sorted(artist_usage.items()):
         result.unknown_artists.append(
