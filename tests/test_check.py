@@ -29,7 +29,7 @@ def make_song(**overrides):
 class TestMissingFields(unittest.TestCase):
     def test_missing_title(self):
         song = make_song(title="")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -38,7 +38,7 @@ class TestMissingFields(unittest.TestCase):
 
     def test_missing_year(self):
         song = make_song(year="")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -47,42 +47,31 @@ class TestMissingFields(unittest.TestCase):
 
     def test_missing_artist_skrul(self):
         song = make_song(artist="", artist_sort="")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {}, d)
         self.assertEqual(len(result.missing_fields), 1)
         self.assertIn("missing artist", result.missing_fields[0])
 
-    def test_missing_artist_gary_not_flagged(self):
-        song = make_song(uuid="dbx:xyz789", artist="", artist_sort="")
-        songs = {("gary", 1): song}
-        with tempfile.TemporaryDirectory() as d:
-            _touch(d, "dbx:xyz789.pdf")
-            result = run_check(songs, {}, d)
-        # Should not flag missing artist for gary songs
-        for msg in result.missing_fields:
-            self.assertNotIn("missing artist", msg)
-
-    def test_missing_artist_sort(self):
+    def test_missing_artist_sort_not_flagged(self):
         song = make_song(artist_sort="")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
-        self.assertEqual(len(result.missing_fields), 1)
-        self.assertIn("missing artist_sort", result.missing_fields[0])
+        self.assertEqual(len(result.missing_fields), 0)
 
     def test_deleted_songs_skipped(self):
         song = make_song(title="", deleted=True)
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             result = run_check(songs, {}, d)
         self.assertEqual(len(result.missing_fields), 0)
 
     def test_skipped_songs_skipped(self):
         song = make_song(title="", skip=True)
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             result = run_check(songs, {}, d)
         self.assertEqual(len(result.missing_fields), 0)
@@ -91,7 +80,7 @@ class TestMissingFields(unittest.TestCase):
 class TestYearFormat(unittest.TestCase):
     def test_valid_year(self):
         song = make_song(year="1965")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -99,7 +88,7 @@ class TestYearFormat(unittest.TestCase):
 
     def test_non_numeric_year(self):
         song = make_song(year="abc")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -108,7 +97,7 @@ class TestYearFormat(unittest.TestCase):
 
     def test_year_too_old(self):
         song = make_song(year="1799")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -117,7 +106,7 @@ class TestYearFormat(unittest.TestCase):
 
     def test_year_in_future(self):
         song = make_song(year="2099")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -126,7 +115,7 @@ class TestYearFormat(unittest.TestCase):
 
     def test_empty_year_not_flagged(self):
         song = make_song(year="")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -138,7 +127,7 @@ class TestDuplicates(unittest.TestCase):
     def test_detects_duplicates(self):
         song1 = make_song(uuid="gd:aaa")
         song2 = make_song(uuid="gd:bbb")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:aaa.pdf")
             _touch(d, "gd:bbb.pdf")
@@ -153,7 +142,7 @@ class TestDuplicates(unittest.TestCase):
     def test_case_insensitive(self):
         song1 = make_song(uuid="gd:aaa", title="Help")
         song2 = make_song(uuid="gd:bbb", title="help")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:aaa.pdf")
             _touch(d, "gd:bbb.pdf")
@@ -163,7 +152,7 @@ class TestDuplicates(unittest.TestCase):
     def test_no_false_duplicates(self):
         song1 = make_song(uuid="gd:aaa", title="Help")
         song2 = make_song(uuid="gd:bbb", title="Yesterday")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:aaa.pdf")
             _touch(d, "gd:bbb.pdf")
@@ -175,7 +164,7 @@ class TestFindDuplicates(unittest.TestCase):
     def test_returns_structured_tuples(self):
         song1 = make_song(uuid="gd:aaa", title="Help", artist="Beatles")
         song2 = make_song(uuid="gd:bbb", title="Help", artist="Beatles")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 1)
         title, artist, entries = dupes[0]
@@ -186,35 +175,35 @@ class TestFindDuplicates(unittest.TestCase):
     def test_skips_deleted_and_skipped(self):
         song1 = make_song(uuid="gd:aaa", title="Help", deleted=True)
         song2 = make_song(uuid="gd:bbb", title="Help")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 0)
 
     def test_distinct_keys_not_duplicates(self):
         song1 = make_song(uuid="gd:aaa", key="G")
         song2 = make_song(uuid="gd:bbb", key="C")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 0)
 
     def test_same_keys_still_duplicates(self):
         song1 = make_song(uuid="gd:aaa", key="G")
         song2 = make_song(uuid="gd:bbb", key="G")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 1)
 
     def test_one_empty_key_still_duplicates(self):
         song1 = make_song(uuid="gd:aaa", key="G")
         song2 = make_song(uuid="gd:bbb", key="")
-        songs = {("skrul", 1): song1, ("skrul", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 1)
 
     def test_empty_artist_grouped(self):
         song1 = make_song(uuid="dbx:aaa", title="Jam", artist="", artist_sort="")
         song2 = make_song(uuid="dbx:bbb", title="Jam", artist="", artist_sort="")
-        songs = {("gary", 1): song1, ("gary", 5): song2}
+        songs = {1: song1, 5: song2}
         dupes = find_duplicates(songs)
         self.assertEqual(len(dupes), 1)
 
@@ -222,7 +211,7 @@ class TestFindDuplicates(unittest.TestCase):
 class TestUnknownArtists(unittest.TestCase):
     def test_artist_in_tab(self):
         song = make_song()
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -230,7 +219,7 @@ class TestUnknownArtists(unittest.TestCase):
 
     def test_artist_not_in_tab(self):
         song = make_song(artist="Unknown Band")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -239,7 +228,7 @@ class TestUnknownArtists(unittest.TestCase):
 
     def test_case_insensitive_match(self):
         song = make_song(artist="BEATLES")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -247,7 +236,7 @@ class TestUnknownArtists(unittest.TestCase):
 
     def test_empty_artist_not_flagged(self):
         song = make_song(uuid="dbx:xyz", artist="", artist_sort="")
-        songs = {("gary", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "dbx:xyz.pdf")
             result = run_check(songs, {}, d)
@@ -257,7 +246,7 @@ class TestUnknownArtists(unittest.TestCase):
 class TestFileExistence(unittest.TestCase):
     def test_missing_pdf(self):
         song = make_song()
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             result = run_check(songs, {"beatles": MagicMock()}, d)
         self.assertEqual(len(result.missing_files), 1)
@@ -265,7 +254,7 @@ class TestFileExistence(unittest.TestCase):
 
     def test_existing_pdf(self):
         song = make_song()
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -283,7 +272,7 @@ class TestOrphanedFiles(unittest.TestCase):
 
     def test_no_orphans(self):
         song = make_song()
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d)
@@ -291,7 +280,7 @@ class TestOrphanedFiles(unittest.TestCase):
 
     def test_deleted_song_pdf_not_orphaned(self):
         song = make_song(deleted=True)
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {}, d)
@@ -299,7 +288,7 @@ class TestOrphanedFiles(unittest.TestCase):
 
     def test_skipped_song_pdf_not_orphaned(self):
         song = make_song(skip=True)
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {}, d)
@@ -309,7 +298,7 @@ class TestOrphanedFiles(unittest.TestCase):
 class TestYearAccuracy(unittest.TestCase):
     def test_flags_year_mismatch(self):
         song = make_song(year="1975")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         mb = MagicMock()
         mb.get_year.return_value = "1965"
         with tempfile.TemporaryDirectory() as d:
@@ -321,7 +310,7 @@ class TestYearAccuracy(unittest.TestCase):
 
     def test_no_flag_when_within_tolerance(self):
         song = make_song(year="1966")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         mb = MagicMock()
         mb.get_year.return_value = "1965"
         with tempfile.TemporaryDirectory() as d:
@@ -331,7 +320,7 @@ class TestYearAccuracy(unittest.TestCase):
 
     def test_no_flag_when_mb_returns_none(self):
         song = make_song(year="1965")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         mb = MagicMock()
         mb.get_year.return_value = None
         with tempfile.TemporaryDirectory() as d:
@@ -341,7 +330,7 @@ class TestYearAccuracy(unittest.TestCase):
 
     def test_not_called_without_lookup(self):
         song = make_song(year="1975")
-        songs = {("skrul", 1): song}
+        songs = {1: song}
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "gd:abc123.pdf")
             result = run_check(songs, {"beatles": MagicMock()}, d, recording_lookup=None)
@@ -349,7 +338,7 @@ class TestYearAccuracy(unittest.TestCase):
 
     def test_skipped_when_missing_artist(self):
         song = make_song(uuid="dbx:xyz", artist="", artist_sort="", year="1975")
-        songs = {("gary", 1): song}
+        songs = {1: song}
         mb = MagicMock()
         with tempfile.TemporaryDirectory() as d:
             _touch(d, "dbx:xyz.pdf")

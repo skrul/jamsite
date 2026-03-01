@@ -126,7 +126,7 @@ def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
         return None
 
 
-def read_songs_spreadsheet(service, sheet):
+def read_songs_spreadsheet(service, sheet="songs"):
     result = (
         service.spreadsheets()
         .values()
@@ -183,7 +183,7 @@ def read_playlist_sheet(service, sheet_name):
 
 def sync_to_spreadsheet(
     service, sheet, drive_songs, existing_songs_by_row,
-    artists_by_name=None, mb=None,
+    artists_by_name=None, mb=None, source_prefix=None,
 ):
     existing_songs_uuids = {
         existing_songs_by_row[r].uuid: (r, existing_songs_by_row[r])
@@ -210,6 +210,8 @@ def sync_to_spreadsheet(
                 )
     for row in existing_songs_by_row:
         existing_song = existing_songs_by_row[row]
+        if source_prefix and not existing_song.uuid.startswith(source_prefix):
+            continue  # not from this source, skip
         gone_from_source = existing_song.uuid not in drive_songs_uuids
         # Only mark as deleted when file disappears from source;
         # never unmark manual deletions (e.g. from --resolve-duplicates)
@@ -417,11 +419,9 @@ def get_songs_and_playlists(cache, songs_dir):
                 return data, {}
             return data["songs"], data["playlists"]
     sheets_service = google_api.auth("sheets", "v4")
-    skrul_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-    print(f"skrul song count: {len(skrul_songs_by_row)}")
-    gary_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
-    print(f"gary song count: {len(gary_songs_by_row)}")
-    songs = list(skrul_songs_by_row.values()) + list(gary_songs_by_row.values())
+    songs_by_row = read_songs_spreadsheet(sheets_service)
+    print(f"song count: {len(songs_by_row)}")
+    songs = list(songs_by_row.values())
     playlists = {}
     for sheet_name, title in read_playlists_index(sheets_service):
         print(f"Reading playlist: {title} ({sheet_name})")
@@ -609,7 +609,6 @@ def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--sync", action="store_true")
-    group.add_argument("--sync-gary", action="store_true")
     group.add_argument("--generate", action="store_true")
     group.add_argument("--check", action="store_true")
     group.add_argument("--resolve-duplicates", action="store_true")
@@ -622,7 +621,6 @@ def main():
     parser.add_argument("--download", action="store_true")
     parser.add_argument("--aws-profile")
     parser.add_argument("--force-google-reauth", action="store_true")
-    parser.add_argument("--sheet", default="gary")
     parser.add_argument("--songs-dir")
     parser.add_argument("--cached", action="store_true")
     args = parser.parse_args()
@@ -634,28 +632,23 @@ def main():
         return
 
     if args.sync:
+        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
+        existing_songs_by_row = read_songs_spreadsheet(sheets_service)
+        artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
+        mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
+
         drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
-
-        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
-        existing_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-        artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
-        mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
         sync_to_spreadsheet(
-            sheets_service, "skrul", drive_songs, existing_songs_by_row,
-            artists_by_name=artists_by_name, mb=mb,
+            sheets_service, "songs", drive_songs, existing_songs_by_row,
+            artists_by_name=artists_by_name, mb=mb, source_prefix="gd:",
         )
-    if args.sync_gary:
+
         dbx = get_dbx()
         dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
-
-        sheets_service = google_api.auth("sheets", "v4")
-        existing_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
-        artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
-        mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
         sync_to_spreadsheet(
-            sheets_service, "gary", dbx_songs, existing_songs_by_row,
-            artists_by_name=artists_by_name, mb=mb,
+            sheets_service, "songs", dbx_songs, existing_songs_by_row,
+            artists_by_name=artists_by_name, mb=mb, source_prefix="dbx:",
         )
     if args.download:
         print(f"Downloading songs to {songs_dir}")
@@ -668,16 +661,8 @@ def main():
         store.download_songs_from_dropbox(dbx, dbx_songs, songs_dir)
     if args.check:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
-        skrul_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-        gary_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
+        songs_by_row = read_songs_spreadsheet(sheets_service)
         artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
-
-        # Build combined dict keyed by (tab, row)
-        songs_by_row = {}
-        for row, song in skrul_songs_by_row.items():
-            songs_by_row[("skrul", row)] = song
-        for row, song in gary_songs_by_row.items():
-            songs_by_row[("gary", row)] = song
 
         recording_lookup = None
         if args.check_years:
@@ -691,14 +676,7 @@ def main():
         raise SystemExit(1 if result.total_issues > 0 else 0)
     if args.resolve_duplicates:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
-        skrul_songs_by_row = read_songs_spreadsheet(sheets_service, "skrul")
-        gary_songs_by_row = read_songs_spreadsheet(sheets_service, "gary")
-
-        songs_by_row = {}
-        for row, song in skrul_songs_by_row.items():
-            songs_by_row[("skrul", row)] = song
-        for row, song in gary_songs_by_row.items():
-            songs_by_row[("gary", row)] = song
+        songs_by_row = read_songs_spreadsheet(sheets_service)
 
         duplicate_groups = find_duplicates(songs_by_row)
         if not duplicate_groups:
@@ -711,12 +689,12 @@ def main():
     if args.fill_metadata:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
         incomplete = find_incomplete_songs(
-            sheets_service, JAM_SONGS_SPREADSHEET_ID, args.sheet
+            sheets_service, JAM_SONGS_SPREADSHEET_ID, "songs"
         )
         if not incomplete:
-            print(f"No incomplete songs found in '{args.sheet}' tab.")
+            print("No incomplete songs found in 'songs' tab.")
         else:
-            print(f"Found {len(incomplete)} incomplete song(s) in '{args.sheet}' tab.")
+            print(f"Found {len(incomplete)} incomplete song(s) in 'songs' tab.")
             artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
             mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
 
@@ -726,7 +704,7 @@ def main():
                 return resolve_artist_sort(song, artists_by_name, mb, sheets_service)
 
             fill_metadata(
-                incomplete, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID, args.sheet,
+                incomplete, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID, "songs",
                 resolve_artist_sort_fn=_resolve,
             )
     if args.dev:

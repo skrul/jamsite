@@ -27,7 +27,7 @@ class TestReadSongsSpreadsheet(unittest.TestCase):
              "A", "http://dl", "http://vl", "2020-01-01", "", ""],
         ]
         service = self._mock_service(rows)
-        songs_by_row = read_songs_spreadsheet(service, "skrul")
+        songs_by_row = read_songs_spreadsheet(service, "songs")
         song = songs_by_row[1]
         self.assertEqual(song.uuid, "u1")
         self.assertEqual(song.artist, "Beatles")
@@ -43,7 +43,7 @@ class TestReadSongsSpreadsheet(unittest.TestCase):
              "", "http://dl", "http://vl", "2020-01-01", "", ""],
         ]
         service = self._mock_service(rows)
-        songs_by_row = read_songs_spreadsheet(service, "skrul")
+        songs_by_row = read_songs_spreadsheet(service, "songs")
         song = songs_by_row[1]
         self.assertEqual(song.key, "")
 
@@ -54,7 +54,7 @@ class TestReadSongsSpreadsheet(unittest.TestCase):
              "", "http://dl", "http://vl", "2020-01-01", "x", ""],
         ]
         service = self._mock_service(rows)
-        songs_by_row = read_songs_spreadsheet(service, "skrul")
+        songs_by_row = read_songs_spreadsheet(service, "songs")
         self.assertTrue(songs_by_row[1].deleted)
 
 
@@ -71,7 +71,7 @@ class TestSyncToSpreadsheet(unittest.TestCase):
             "u-new", "Artist", None, "Title", None, "2020",
             "http://dl", "http://vl", "2020-01-01", False, False,
         )
-        sync_to_spreadsheet(service, "skrul", [new_song], {})
+        sync_to_spreadsheet(service, "songs", [new_song], {})
 
         # Grab the body passed to append
         append_call = service.spreadsheets().values().append
@@ -104,7 +104,7 @@ class TestSyncToSpreadsheet(unittest.TestCase):
         }
         mb = MagicMock()
         sync_to_spreadsheet(
-            service, "skrul", [new_song], {},
+            service, "songs", [new_song], {},
             artists_by_name=artists_by_name, mb=mb,
         )
 
@@ -125,7 +125,7 @@ class TestSyncToSpreadsheet(unittest.TestCase):
             "http://dl", "http://vl", "2020-01-01", False, False,
         )
         # No artists_by_name or mb params — backward compatible
-        sync_to_spreadsheet(service, "skrul", [new_song], {})
+        sync_to_spreadsheet(service, "songs", [new_song], {})
 
         append_call = service.spreadsheets().values().append
         body = append_call.call_args[1]["body"]
@@ -145,10 +145,40 @@ class TestSyncToSpreadsheet(unittest.TestCase):
         artists_by_name = {}
         mb = MagicMock()
         sync_to_spreadsheet(
-            service, "skrul", [new_song], {},
+            service, "songs", [new_song], {},
             artists_by_name=artists_by_name, mb=mb,
         )
         mb.search_artist.assert_not_called()
+
+    def test_source_prefix_skips_other_source_deletions(self):
+        """Syncing Drive songs should not mark Dropbox songs as deleted."""
+        service = MagicMock()
+        service.spreadsheets().values().append().execute.return_value = {}
+        service.spreadsheets().values().batchUpdate().execute.return_value = {}
+
+        from jamsite.song import Song
+        # Existing songs: one from Drive, one from Dropbox
+        drive_song = Song(
+            "gd:existing", "Artist", None, "Drive Song", None, "2020",
+            "http://dl", "http://vl", "2020-01-01", False, False,
+        )
+        dbx_song = Song(
+            "dbx:existing", "Artist", None, "Dropbox Song", None, "2020",
+            "http://dl", "http://vl", "2020-01-01", False, False,
+        )
+        existing = {1: drive_song, 2: dbx_song}
+
+        # Sync with empty Drive songs list (simulating all Drive songs removed)
+        sync_to_spreadsheet(service, "songs", [], existing, source_prefix="gd:")
+
+        # Check batchUpdate was called with deletion for Drive song only
+        batch_call = service.spreadsheets().values().batchUpdate
+        call_kwargs = batch_call.call_args[1]
+        updates = call_kwargs["body"]["data"]
+        # Should mark gd:existing as deleted, but NOT dbx:existing
+        deleted_ranges = [u["range"] for u in updates]
+        self.assertTrue(any("2" in r for r in deleted_ranges))  # row 2 = drive_song (row+1)
+        self.assertFalse(any("3" in r for r in deleted_ranges))  # row 3 = dbx_song (row+1)
 
 
 class TestLooksLikeCollab(unittest.TestCase):

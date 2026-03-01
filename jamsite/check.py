@@ -57,17 +57,19 @@ def find_duplicates(songs_by_row):
     """Find duplicate songs (same title+artist, case-insensitive).
 
     Args:
-        songs_by_row: dict mapping (tab, row) -> Song
+        songs_by_row: dict mapping row -> Song
 
     Returns:
         list of (title, artist, entries) tuples where entries is
         [(tab, row, song), ...] for groups with 2+ entries.
+        tab is derived from the song's UUID prefix.
     """
     seen_titles = defaultdict(list)
-    for (tab, row), song in songs_by_row.items():
+    for row, song in songs_by_row.items():
         if song.deleted or song.skip:
             continue
         key = (song.title.lower().strip(), (song.artist or "").lower().strip())
+        tab = _tab_from_uuid(song.uuid)
         seen_titles[key].append((tab, row, song))
 
     duplicates = []
@@ -86,7 +88,7 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
     """Run all checks and return a CheckResult.
 
     Args:
-        songs_by_row: dict mapping (tab, row) -> Song
+        songs_by_row: dict mapping row -> Song
         artists_by_name: dict mapping lowercased artist name -> Artist
         songs_dir: path to directory containing PDF files
         recording_lookup: optional RecordingLookup instance for year checks
@@ -98,7 +100,8 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
     active_uuids = set()
     inactive_uuids = set()  # deleted or skipped
 
-    for (tab, row), song in songs_by_row.items():
+    for row, song in songs_by_row.items():
+        tab = _tab_from_uuid(song.uuid)
         if song.deleted or song.skip:
             inactive_uuids.add(song.uuid)
             continue
@@ -111,11 +114,8 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
             missing.append("title")
         if not song.year:
             missing.append("year")
-        # artist is expected to be empty for gary tab songs
-        if tab != "gary" and not song.artist:
+        if not song.artist:
             missing.append("artist")
-        if song.artist and not song.artist_sort:
-            missing.append("artist_sort")
         if missing:
             title_str = song.title or "(untitled)"
             artist_str = f' by {song.artist}' if song.artist else ""
@@ -172,7 +172,7 @@ def run_check(songs_by_row, artists_by_name, songs_dir, recording_lookup=None):
 
     # 4. Unknown artists — collect all unique artists not in artists tab
     artist_usage = defaultdict(int)
-    for (tab, row), song in songs_by_row.items():
+    for row, song in songs_by_row.items():
         if song.deleted or song.skip:
             continue
         if song.artist and unicodedata.normalize("NFC", song.artist.lower()) not in artists_by_name:
@@ -311,7 +311,7 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
                 key_val = input(f"  Key for {j + 1} (row {row + 1}, {tab}){existing}: ").strip()
                 if key_val:
                     updates.append({
-                        "range": f"{tab}!{Song.SPREADSHEET_COLUMNS['key']}{row + 1}",
+                        "range": f"songs!{Song.SPREADSHEET_COLUMNS['key']}{row + 1}",
                         "values": [[key_val]],
                     })
                     total_keys_set += 1
@@ -331,7 +331,7 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
                 for j, (tab, row, song) in enumerate(entries):
                     if j + 1 != pick:
                         updates.append({
-                            "range": f"{tab}!{Song.SPREADSHEET_COLUMNS['deleted']}{row + 1}",
+                            "range": f"songs!{Song.SPREADSHEET_COLUMNS['deleted']}{row + 1}",
                             "values": [["x"]],
                         })
                         total_deleted += 1
