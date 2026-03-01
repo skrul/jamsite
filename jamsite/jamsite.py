@@ -21,7 +21,7 @@ from . import store
 import shutil
 from .artists import read_artists, append_artist, Artist
 from .musicbrainz import MusicBrainzArtistLookup
-from .check import run_check, print_report, find_duplicates, resolve_duplicates
+from .check import run_check, print_report, find_duplicates, resolve_duplicates, find_incomplete_songs, fill_metadata
 from .recording_lookup import RecordingLookup
 
 PORT = 8000
@@ -613,6 +613,7 @@ def main():
     group.add_argument("--generate", action="store_true")
     group.add_argument("--check", action="store_true")
     group.add_argument("--resolve-duplicates", action="store_true")
+    group.add_argument("--fill-metadata", action="store_true")
     group.add_argument("--dropbox-auth", action="store_true")
     group.add_argument("--dev", action="store_true")
     parser.add_argument("--check-years", action="store_true")
@@ -621,6 +622,7 @@ def main():
     parser.add_argument("--download", action="store_true")
     parser.add_argument("--aws-profile")
     parser.add_argument("--force-google-reauth", action="store_true")
+    parser.add_argument("--sheet", default="gary")
     parser.add_argument("--songs-dir")
     parser.add_argument("--cached", action="store_true")
     args = parser.parse_args()
@@ -705,6 +707,27 @@ def main():
             print(f"Found {len(duplicate_groups)} duplicate group(s).")
             resolve_duplicates(
                 duplicate_groups, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID
+            )
+    if args.fill_metadata:
+        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
+        incomplete = find_incomplete_songs(
+            sheets_service, JAM_SONGS_SPREADSHEET_ID, args.sheet
+        )
+        if not incomplete:
+            print(f"No incomplete songs found in '{args.sheet}' tab.")
+        else:
+            print(f"Found {len(incomplete)} incomplete song(s) in '{args.sheet}' tab.")
+            artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
+            mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
+
+            def _resolve(artist, title):
+                from types import SimpleNamespace
+                song = SimpleNamespace(artist=artist, title=title)
+                return resolve_artist_sort(song, artists_by_name, mb, sheets_service)
+
+            fill_metadata(
+                incomplete, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID, args.sheet,
+                resolve_artist_sort_fn=_resolve,
             )
     if args.dev:
         dev(songs_dir)

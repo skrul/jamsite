@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
+import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -355,3 +356,175 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
     summary = ", ".join(parts) if parts else "no changes"
     print(f"\nDone: {summary}.")
     return total_deleted
+
+
+def find_incomplete_songs(sheets_service, spreadsheet_id, sheet):
+    """Find songs that have a uuid but are missing artist, title, or year.
+
+    Reads raw sheet values directly (can't use read_songs_spreadsheet which
+    filters out incomplete rows).
+
+    Returns:
+        list of (row_index, values_dict) where row_index is 0-based and
+        values_dict has keys: uuid, artist, title, year.
+    """
+    result = (
+        sheets_service.spreadsheets()
+        .values()
+        .get(spreadsheetId=spreadsheet_id, range=sheet)
+        .execute()
+    )
+    rows = result.get("values", [])
+    incomplete = []
+    for row_idx, row in enumerate(rows):
+        if row_idx == 0:
+            continue
+        d = defaultdict(lambda: "")
+        for i, v in enumerate(row):
+            d[i] = v
+        uuid = d[0].strip()
+        artist = d[1].strip()
+        title = d[3].strip()
+        year = d[5].strip()
+        deleted = d[10].strip().lower() == "x"
+        skip = d[11].strip().lower() == "x"
+        if not uuid or deleted or skip:
+            continue
+        if not artist or not title or not year:
+            incomplete.append((row_idx, {
+                "uuid": uuid,
+                "artist": artist,
+                "title": title,
+                "year": year,
+            }))
+    return incomplete
+
+
+def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, sheet,
+                   resolve_artist_sort_fn=None):
+    """Interactively fill in missing metadata for incomplete songs.
+
+    For each song, opens the PDF, prompts for artist/title/year, searches
+    Google for the year, and updates the spreadsheet.
+
+    Args:
+        resolve_artist_sort_fn: optional callback(artist, title) -> sort_name
+            that resolves artist_sort via MusicBrainz and updates the artists sheet.
+    """
+    total = len(incomplete_songs)
+    updated = 0
+
+    for i, (row_idx, vals) in enumerate(incomplete_songs):
+        uuid = vals["uuid"]
+        print(f"\n=== Song {i + 1} of {total}: {uuid} ===")
+        if vals["artist"]:
+            print(f"  Artist: {vals['artist']}")
+        if vals["title"]:
+            print(f"  Title: {vals['title']}")
+        if vals["year"]:
+            print(f"  Year: {vals['year']}")
+
+        # Open PDF in Preview via a temp copy (so we can cleanly close it)
+        pdf_path = os.path.join(songs_dir, uuid + ".pdf")
+        tmp_dir = None
+        tmp_path = None
+        if os.path.exists(pdf_path):
+            tmp_dir = tempfile.mkdtemp(prefix="jamsite_fill_")
+            safe_name = uuid.replace(":", "_") + ".pdf"
+            tmp_path = os.path.join(tmp_dir, safe_name)
+            shutil.copy2(pdf_path, tmp_path)
+            subprocess.run(["open", "-a", "Preview", tmp_path])
+        else:
+            print(f"  (PDF not found: {pdf_path})")
+
+        # Prompt for artist
+        if vals["artist"]:
+            artist = input(f"  Artist [{vals['artist']}]: ").strip()
+            if not artist:
+                artist = vals["artist"]
+        else:
+            artist = input("  Artist (empty to skip song): ").strip()
+            if not artist:
+                print("  -> Skipped")
+                if tmp_path:
+                    _close_preview_docs([tmp_path])
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                continue
+
+        # Prompt for title
+        if vals["title"]:
+            title = input(f"  Title [{vals['title']}]: ").strip()
+            if not title:
+                title = vals["title"]
+        else:
+            title = input("  Title (empty to skip song): ").strip()
+            if not title:
+                print("  -> Skipped")
+                if tmp_path:
+                    _close_preview_docs([tmp_path])
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                continue
+
+        # Open Google search for year
+        query = urllib.parse.quote(f"{artist} {title} year")
+        search_url = f"https://www.google.com/search?q={query}"
+        subprocess.run(["open", search_url])
+
+        # Prompt for year
+        if vals["year"]:
+            year = input(f"  Year [{vals['year']}]: ").strip()
+            if not year:
+                year = vals["year"]
+        else:
+            year = input("  Year (empty to skip): ").strip()
+
+        # Resolve artist_sort via MusicBrainz
+        artist_sort = None
+        if resolve_artist_sort_fn and artist:
+            artist_sort = resolve_artist_sort_fn(artist, title)
+
+        # Update spreadsheet
+        updates = []
+        if artist != vals["artist"]:
+            updates.append({
+                "range": f"{sheet}!{Song.SPREADSHEET_COLUMNS['artist']}{row_idx + 1}",
+                "values": [[artist]],
+            })
+        if artist_sort:
+            updates.append({
+                "range": f"{sheet}!{Song.SPREADSHEET_COLUMNS['artist_sort']}{row_idx + 1}",
+                "values": [[artist_sort]],
+            })
+        if title != vals["title"]:
+            updates.append({
+                "range": f"{sheet}!{Song.SPREADSHEET_COLUMNS['title']}{row_idx + 1}",
+                "values": [[title]],
+            })
+        if year and year != vals["year"]:
+            updates.append({
+                "range": f"{sheet}!{Song.SPREADSHEET_COLUMNS['year']}{row_idx + 1}",
+                "values": [[year]],
+            })
+
+        if updates:
+            sheets_service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"valueInputOption": "USER_ENTERED", "data": updates},
+            ).execute()
+            updated += 1
+            print(f"  -> Updated: {artist} - {title} ({year})")
+        else:
+            print("  -> No changes")
+
+        # Close the PDF
+        if tmp_path:
+            _close_preview_docs([tmp_path])
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        # Check for quit
+        next_action = input("  [Enter to continue, q to quit] ").strip().lower()
+        if next_action == "q":
+            print("  Quitting early.")
+            break
+
+    print(f"\nDone: updated {updated} of {total} songs.")
