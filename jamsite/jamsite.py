@@ -193,6 +193,7 @@ def sync_to_spreadsheet(
     }
     to_append = []
     to_update = []
+    to_delete = []
     drive_songs_uuids = set()
     for song in drive_songs:
         drive_songs_uuids.add(song.uuid)
@@ -210,15 +211,17 @@ def sync_to_spreadsheet(
                         "values": [[song.view_link]],
                     }
                 )
+    existing_count = 0
     for row in existing_songs_by_row:
         existing_song = existing_songs_by_row[row]
         if source_prefix and not existing_song.uuid.startswith(source_prefix):
             continue  # not from this source, skip
+        existing_count += 1
         gone_from_source = existing_song.uuid not in drive_songs_uuids
         # Only mark as deleted when file disappears from source;
         # never unmark manual deletions (e.g. from --resolve-duplicates)
         if gone_from_source and not existing_song.deleted:
-            to_update.append(
+            to_delete.append(
                 {
                     "range": sheet
                     + "!"
@@ -254,6 +257,10 @@ def sync_to_spreadsheet(
         ]
         for s in to_append
     ]
+    source_label = source_prefix or "all"
+    print(f"  {source_label} existing: {existing_count}, new: {len(to_append)}, "
+          f"deleted: {len(to_delete)}, updated: {len(to_update)}")
+
     result = (
         service.spreadsheets()
         .values()
@@ -271,7 +278,7 @@ def sync_to_spreadsheet(
         .values()
         .batchUpdate(
             spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
-            body={"valueInputOption": "RAW", "data": to_update},
+            body={"valueInputOption": "RAW", "data": to_update + to_delete},
         )
         .execute()
     )
@@ -639,6 +646,7 @@ def main():
         artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
         mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
 
+        print("Syncing Google Drive...")
         drive_service = get_drive(force_reauth=args.force_google_reauth)
         drive_songs = store.get_songs_from_drive(drive_service, JAM_SONGS_FOLDER_ID)
         sync_to_spreadsheet(
@@ -646,6 +654,7 @@ def main():
             artists_by_name=artists_by_name, mb=mb, source_prefix="gd:",
         )
 
+        print("Syncing Dropbox...")
         dbx = get_dbx()
         dbx_songs = store.get_songs_from_dropbox(dbx, GARY_SONGS_FOLDER_PATH)
         sync_to_spreadsheet(
