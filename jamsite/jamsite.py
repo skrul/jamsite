@@ -126,7 +126,7 @@ def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
         return None
 
 
-def read_songs_spreadsheet(service, sheet="songs"):
+def read_songs_spreadsheet(service, sheet="songs", require_complete=True):
     result = (
         service.spreadsheets()
         .values()
@@ -139,7 +139,9 @@ def read_songs_spreadsheet(service, sheet="songs"):
         if row == 0:
             continue
         song = Song.from_spreadsheet_row(value)
-        if not song.uuid or not song.artist or not song.title or not song.year:
+        if not song.uuid:
+            continue
+        if require_complete and (not song.artist or not song.title or not song.year):
             continue
         songs_by_row[row] = song
     return songs_by_row
@@ -633,7 +635,7 @@ def main():
 
     if args.sync:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
-        existing_songs_by_row = read_songs_spreadsheet(sheets_service)
+        existing_songs_by_row = read_songs_spreadsheet(sheets_service, require_complete=False)
         artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
         mb = MusicBrainzArtistLookup(cache_path=MB_CACHE_PATH)
 
