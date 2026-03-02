@@ -7,6 +7,7 @@ file existence, orphaned files, and optional year accuracy via MusicBrainz.
 
 import datetime
 import glob
+import json
 import os
 import shutil
 import subprocess
@@ -16,7 +17,10 @@ import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from pypdf import PdfWriter, PdfReader
+
 from jamsite.song import Song
+from jamsite.store import upload_pdf_to_drive
 
 
 @dataclass
@@ -246,11 +250,25 @@ def _close_preview_docs(paths):
         )
 
 
-def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_id):
+def _combine_pdfs(pdf_paths):
+    """Merge multiple PDFs into one. Returns path to the merged temp file."""
+    writer = PdfWriter()
+    for path in pdf_paths:
+        reader = PdfReader(path)
+        for page in reader.pages:
+            writer.add_page(page)
+    tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    writer.write(tmp)
+    tmp.close()
+    return tmp.name
+
+
+def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_id,
+                       drive_service=None, folder_id=None):
     """Interactively resolve duplicate songs.
 
     For each duplicate group, opens the PDFs for comparison and prompts
-    the user to pick which to keep. Others are marked as deleted in the
+    the user to pick which to keep. Others are marked as skipped in the
     spreadsheet.
 
     Args:
@@ -258,10 +276,13 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
         songs_dir: path to directory containing PDF files
         sheets_service: authenticated Google Sheets API service
         spreadsheet_id: the spreadsheet ID to update
+        drive_service: authenticated Google Drive API service (needed for combine)
+        folder_id: Drive folder ID to upload combined PDFs into
     """
     total = len(duplicate_groups)
-    total_deleted = 0
+    total_skipped = 0
     total_keys_set = 0
+    total_combined = 0
 
     for i, (title, artist, entries) in enumerate(duplicate_groups):
         artist_str = f' by {artist}' if artist else ""
@@ -292,7 +313,8 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
 
         # Prompt user
         valid_nums = "/".join(str(j + 1) for j in range(len(entries)))
-        choice = input(f"  Keep which? [{valid_nums}/k(eys)/s(kip)/q(uit)] ").strip().lower()
+        combine_opt = "/c(ombine)" if drive_service and folder_id else ""
+        choice = input(f"  Keep which? [{valid_nums}/k(eys){combine_opt}/s(kip)/q(uit)] ").strip().lower()
 
         updates = []
 
@@ -316,6 +338,111 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
                     })
                     total_keys_set += 1
                     print(f"  → Setting key to {key_val}")
+        elif choice == "c":
+            if not drive_service or not folder_id:
+                print("  → Combine not available (no Drive service)")
+            else:
+                # Ask which songs to combine
+                combo_input = input(
+                    f"  Which songs to combine? (e.g. 1,2 or 1,2,3): "
+                ).strip()
+                try:
+                    combo_indices = [int(x.strip()) for x in combo_input.split(",")]
+                    if any(x < 1 or x > len(entries) for x in combo_indices):
+                        raise ValueError("out of range")
+                    if len(combo_indices) < 2:
+                        raise ValueError("need at least 2")
+                except ValueError as e:
+                    print(f"  → Invalid selection ({e}), skipping")
+                    if symlink_paths:
+                        _close_preview_docs(symlink_paths)
+                        shutil.rmtree(symlink_dir, ignore_errors=True)
+                    continue
+
+                # Ask which song's metadata to use
+                meta_input = input(
+                    f"  Use metadata from which song? [{'/'.join(str(x) for x in combo_indices)}]: "
+                ).strip()
+                try:
+                    meta_pick = int(meta_input)
+                    if meta_pick < 1 or meta_pick > len(entries):
+                        raise ValueError("out of range")
+                except ValueError:
+                    print("  → Invalid metadata choice, skipping")
+                    if symlink_paths:
+                        _close_preview_docs(symlink_paths)
+                        shutil.rmtree(symlink_dir, ignore_errors=True)
+                    continue
+
+                meta_song = entries[meta_pick - 1][2]
+
+                # Merge the selected PDFs in order
+                pdf_paths = []
+                for idx in combo_indices:
+                    p = os.path.join(songs_dir, entries[idx - 1][2].uuid + ".pdf")
+                    if not os.path.exists(p):
+                        print(f"  → PDF not found for {entries[idx - 1][2].uuid}, aborting combine")
+                        break
+                    pdf_paths.append(p)
+                else:
+                    # All PDFs found — proceed with merge
+                    merged_path = _combine_pdfs(pdf_paths)
+
+                    # Generate Drive filename
+                    year_str = f" ({meta_song.year})" if meta_song.year else ""
+                    drive_filename = f"{meta_song.title} - {meta_song.artist}{year_str}.pdf"
+                    print(f"  → Uploading as: {drive_filename}")
+
+                    # Upload to Drive
+                    result = upload_pdf_to_drive(
+                        drive_service, merged_path, drive_filename, folder_id
+                    )
+                    new_file_id = result["id"]
+                    new_uuid = f"gd:{new_file_id}"
+                    print(f"  → Uploaded: {new_uuid}")
+
+                    # Save merged PDF locally
+                    local_pdf_path = os.path.join(songs_dir, new_uuid + ".pdf")
+                    shutil.copy2(merged_path, local_pdf_path)
+                    os.unlink(merged_path)
+
+                    # Write local metadata
+                    local_meta_path = os.path.join(songs_dir, new_uuid + ".json")
+                    with open(local_meta_path, "w") as f:
+                        json.dump({"hash": result.get("sha1Checksum", "")}, f)
+
+                    # Append new row to spreadsheet
+                    new_row = [[
+                        new_uuid,
+                        meta_song.artist,
+                        "",  # artist_sort
+                        meta_song.title,
+                        "",  # title_sort
+                        meta_song.year,
+                        "",  # key
+                        result.get("webContentLink", ""),
+                        result.get("webViewLink", ""),
+                        result.get("modifiedTime", ""),
+                        "",  # deleted
+                    ]]
+                    sheets_service.spreadsheets().values().append(
+                        spreadsheetId=spreadsheet_id,
+                        valueInputOption="RAW",
+                        range="songs!A1",
+                        body={"values": new_row},
+                    ).execute()
+                    print(f"  → Added new spreadsheet row")
+
+                    # Mark ALL source songs as skipped
+                    for j, (tab, row, song) in enumerate(entries):
+                        updates.append({
+                            "range": f"songs!{Song.SPREADSHEET_COLUMNS['skip']}{row + 1}",
+                            "values": [["x"]],
+                        })
+                        total_skipped += 1
+                        print(f"  → Marking {song.uuid} as skipped")
+
+                    total_combined += 1
         else:
             try:
                 pick = int(choice)
@@ -326,16 +453,16 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
                 print("  → Invalid choice, skipping")
                 pick = None
 
-            # Mark all others as deleted
+            # Mark all others as skipped
             if pick is not None:
                 for j, (tab, row, song) in enumerate(entries):
                     if j + 1 != pick:
                         updates.append({
-                            "range": f"songs!{Song.SPREADSHEET_COLUMNS['deleted']}{row + 1}",
+                            "range": f"songs!{Song.SPREADSHEET_COLUMNS['skip']}{row + 1}",
                             "values": [["x"]],
                         })
-                        total_deleted += 1
-                        print(f"  → Marking {song.uuid} as deleted")
+                        total_skipped += 1
+                        print(f"  → Marking {song.uuid} as skipped")
 
         # Close the opened PDFs in Preview
         if symlink_paths:
@@ -349,13 +476,15 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
             ).execute()
 
     parts = []
-    if total_deleted:
-        parts.append(f"marked {total_deleted} as deleted")
+    if total_skipped:
+        parts.append(f"marked {total_skipped} as skipped")
     if total_keys_set:
         parts.append(f"set {total_keys_set} key{'s' if total_keys_set != 1 else ''}")
+    if total_combined:
+        parts.append(f"combined {total_combined} group{'s' if total_combined != 1 else ''}")
     summary = ", ".join(parts) if parts else "no changes"
     print(f"\nDone: {summary}.")
-    return total_deleted
+    return total_skipped
 
 
 def find_incomplete_songs(sheets_service, spreadsheet_id, sheet):

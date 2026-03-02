@@ -218,8 +218,7 @@ def sync_to_spreadsheet(
             continue  # not from this source, skip
         existing_count += 1
         gone_from_source = existing_song.uuid not in drive_songs_uuids
-        # Only mark as deleted when file disappears from source;
-        # never unmark manual deletions (e.g. from --resolve-duplicates)
+        # Only mark as deleted when file disappears from source
         if gone_from_source and not existing_song.deleted:
             to_delete.append(
                 {
@@ -687,6 +686,7 @@ def main():
         raise SystemExit(1 if result.total_issues > 0 else 0)
     if args.resolve_duplicates:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
+        drive_service = get_drive()  # token already refreshed above if needed
         songs_by_row = read_songs_spreadsheet(sheets_service)
 
         duplicate_groups = find_duplicates(songs_by_row)
@@ -695,7 +695,8 @@ def main():
         else:
             print(f"Found {len(duplicate_groups)} duplicate group(s).")
             resolve_duplicates(
-                duplicate_groups, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID
+                duplicate_groups, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID,
+                drive_service=drive_service, folder_id=JAM_SONGS_FOLDER_ID,
             )
     if args.fill_metadata:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)

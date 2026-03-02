@@ -14,6 +14,7 @@ dependencies = [
     "dropbox>=11.36.2",
     "setuptools>=69.2.0",
     "gotenberg-client>=0.9.0",
+    "pypdf>=4.0.0",
 ]
 
 [dependency-groups]

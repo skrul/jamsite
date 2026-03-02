@@ -7,7 +7,7 @@ import dropbox
 from .song import Song
 import os
 import json
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 import requests
 from gotenberg_client import GotenbergClient
 from pathlib import Path
@@ -191,6 +191,35 @@ def download_songs_from_dropbox(dbx, songs, dest):
     print(f"  Exists {count_exists} songs")
     print(f"  Converted {count_converted} songs")
     print(f"  Unsupported {count_unsupported} songs")
+
+
+def upload_pdf_to_drive(service, file_path, filename, folder_id):
+    """Upload a PDF to Google Drive.
+
+    Args:
+        service: authenticated Drive API service
+        file_path: local path to the PDF file
+        filename: desired filename in Drive (e.g. "Title - Artist (Year).pdf")
+        folder_id: Drive folder ID to upload into
+
+    Returns:
+        dict with id, webContentLink, webViewLink, sha1Checksum, modifiedTime
+    """
+    file_metadata = {
+        "name": filename,
+        "parents": [folder_id],
+    }
+    media = MediaFileUpload(file_path, mimetype="application/pdf")
+    result = (
+        service.files()
+        .create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, webContentLink, webViewLink, sha1Checksum, modifiedTime",
+        )
+        .execute()
+    )
+    return result
 
 
 def convert_to_pdf(input_path, output_path):
