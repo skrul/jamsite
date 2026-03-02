@@ -36,9 +36,10 @@ Songs are stored on a case-sensitive APFS volume at `/Volumes/songs/data` by def
 ### Sync metadata from source folders to spreadsheet
 
 ```
-uv run jamsite --sync              # Google Drive songs
-uv run jamsite --sync-gary         # Dropbox songs
+uv run jamsite --sync
 ```
+
+Syncs both Google Drive and Dropbox songs to the spreadsheet, then auto-fills any matching playlist rows.
 
 ### Download song PDFs
 
@@ -81,6 +82,38 @@ This skips the slow spreadsheet fetch and template rendering, so it's much faste
 ```
 uv run jamsite --check
 uv run jamsite --check --check-years    # also check song years via MusicBrainz
+```
+
+### Resolve duplicates
+
+Interactively resolve duplicate songs. For each group, opens the PDFs for comparison and lets you pick one to keep, assign keys to distinguish arrangements, or combine multiple PDFs into one (merges and uploads to Drive).
+
+```
+uv run jamsite --resolve-duplicates
+```
+
+### Fill incomplete metadata
+
+Interactively fill in missing artist/title/year for songs that have a UUID but incomplete metadata.
+
+```
+uv run jamsite --fill-metadata
+```
+
+### Fill playlists
+
+Match songs to playlist rows by exact artist+title and fill in UUIDs. Supports multiple key variants per playlist entry.
+
+```
+uv run jamsite --fill-playlists
+```
+
+### Fix quotes
+
+Batch-convert straight quotes to typographic curly quotes (MusicBrainz style) in title, artist, artist_sort, and title_sort columns.
+
+```
+uv run jamsite --fix-quotes
 ```
 
 ### Publish to S3
