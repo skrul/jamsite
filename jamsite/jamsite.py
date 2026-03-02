@@ -21,7 +21,7 @@ from . import store
 import shutil
 from .artists import read_artists, append_artist, Artist
 from .musicbrainz import MusicBrainzArtistLookup
-from .check import run_check, print_report, find_duplicates, resolve_duplicates, find_incomplete_songs, fill_metadata
+from .check import run_check, print_report, find_duplicates, resolve_duplicates, find_incomplete_songs, fill_metadata, fill_playlists
 from .recording_lookup import RecordingLookup
 
 PORT = 8000
@@ -622,6 +622,7 @@ def main():
     group.add_argument("--resolve-duplicates", action="store_true")
     group.add_argument("--fill-metadata", action="store_true")
     group.add_argument("--fix-quotes", action="store_true")
+    group.add_argument("--fill-playlists", action="store_true")
     group.add_argument("--dropbox-auth", action="store_true")
     group.add_argument("--dev", action="store_true")
     parser.add_argument("--check-years", action="store_true")
@@ -661,6 +662,11 @@ def main():
             sheets_service, "songs", dbx_songs, existing_songs_by_row,
             artists_by_name=artists_by_name, mb=mb, source_prefix="dbx:",
         )
+
+        print("Checking playlists...")
+        songs_by_row = read_songs_spreadsheet(sheets_service, require_complete=False)
+        playlists_index = read_playlists_index(sheets_service)
+        fill_playlists(songs_by_row, playlists_index, sheets_service, JAM_SONGS_SPREADSHEET_ID)
     if args.download:
         print(f"Downloading songs to {songs_dir}")
         drive_service = get_drive(force_reauth=args.force_google_reauth)
@@ -751,6 +757,11 @@ def main():
             print(f"\nFixed {len(updates)} field(s).")
         else:
             print("No straight quotes found.")
+    if args.fill_playlists:
+        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
+        songs_by_row = read_songs_spreadsheet(sheets_service, require_complete=False)
+        playlists_index = read_playlists_index(sheets_service)
+        fill_playlists(songs_by_row, playlists_index, sheets_service, JAM_SONGS_SPREADSHEET_ID)
     if args.dev:
         dev(songs_dir)
     if args.generate:

@@ -57,18 +57,24 @@ def _tab_from_uuid(uuid):
     return "unknown"
 
 
-_QUOTE_TABLE = str.maketrans({
+_MATCH_TABLE = str.maketrans({
     "\u2018": "'",  # left single quotation mark
     "\u2019": "'",  # right single quotation mark
     "\u02bc": "'",  # modifier letter apostrophe
     "\u201c": '"',  # left double quotation mark
     "\u201d": '"',  # right double quotation mark
+    "\u2013": "-",  # en dash
+    "\u2014": "-",  # em dash
+    "\u2010": "-",  # hyphen
+    "\u2011": "-",  # non-breaking hyphen
 })
 
 
 def _normalize_for_matching(s):
-    """Normalize a string for duplicate matching: lowercase, strip, straighten quotes."""
-    return s.lower().strip().translate(_QUOTE_TABLE)
+    """Normalize a string for matching: lowercase, strip, straighten quotes/dashes, collapse whitespace."""
+    s = unicodedata.normalize("NFC", s)
+    s = s.lower().strip().translate(_MATCH_TABLE)
+    return " ".join(s.split())  # collapse whitespace
 
 
 def find_duplicates(songs_by_row):
@@ -675,3 +681,72 @@ def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, s
             break
 
     print(f"\nDone: updated {updated} of {total} songs.")
+
+
+def fill_playlists(songs_by_row, playlists_index, sheets_service, spreadsheet_id):
+    """Fill playlist rows with UUIDs for exact artist+title matches.
+
+    Args:
+        songs_by_row: dict mapping row -> Song
+        playlists_index: list of (sheet_name, title) from read_playlists_index()
+        sheets_service: authenticated Google Sheets API service
+        spreadsheet_id: the spreadsheet ID to update
+    """
+    # Build lookup: (normalized_title, normalized_artist) -> list of songs
+    songs_by_key = defaultdict(list)
+    for row, song in songs_by_row.items():
+        if song.deleted or song.skip or not song.title:
+            continue
+        key = (_normalize_for_matching(song.title), _normalize_for_matching(song.artist or ""))
+        songs_by_key[key].append(song)
+
+    total_filled = 0
+
+    for sheet_name, title in playlists_index:
+        result = (
+            sheets_service.spreadsheets()
+            .values()
+            .get(spreadsheetId=spreadsheet_id, range=sheet_name)
+            .execute()
+        )
+        rows = result.get("values", [])
+
+        updates = []
+        for row_idx, row in enumerate(rows):
+            if row_idx == 0:
+                continue
+            d = defaultdict(lambda: "")
+            for i, v in enumerate(row):
+                d[i] = v
+            pl_artist = d[0].strip()
+            pl_title = d[1].strip()
+            pl_uuid = d[2].strip()
+
+            if pl_uuid:
+                continue  # already matched
+
+            key = (_normalize_for_matching(pl_title), _normalize_for_matching(pl_artist))
+            found = songs_by_key.get(key, [])
+
+            if not found:
+                continue
+
+            song = found[0]
+            updates.append({
+                "range": f"{sheet_name}!C{row_idx + 1}:E{row_idx + 1}",
+                "values": [[song.uuid, song.artist, song.title]],
+            })
+            print(f"  {title} row {row_idx + 1}: {pl_artist} - {pl_title} -> [{song.uuid}]")
+
+        if updates:
+            sheets_service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"valueInputOption": "RAW", "data": updates},
+            ).execute()
+            total_filled += len(updates)
+            print(f"  -> Updated {len(updates)} row(s) in {title}\n")
+
+    if total_filled == 0:
+        print("No exact matches to fill.")
+    else:
+        print(f"\nTotal: filled {total_filled} playlist row(s).")
