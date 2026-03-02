@@ -166,7 +166,11 @@ def read_playlists_index(service):
 
 
 def read_playlist_sheet(service, sheet_name):
-    """Read a playlist tab and return list of matched UUIDs (col C, index 2)."""
+    """Read a playlist tab and return list of matched UUIDs (col C, index 2).
+
+    Column C may contain comma-separated UUIDs for songs with multiple
+    key variants; all are included in the returned list.
+    """
     result = (
         service.spreadsheets()
         .values()
@@ -179,7 +183,10 @@ def read_playlist_sheet(service, sheet_name):
         if row == 0:
             continue
         if len(value) > 2 and value[2].strip():
-            uuids.append(value[2].strip())
+            for uuid in value[2].split(","):
+                uuid = uuid.strip()
+                if uuid:
+                    uuids.append(uuid)
     return uuids
 
 

@@ -686,6 +686,9 @@ def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, s
 def fill_playlists(songs_by_row, playlists_index, sheets_service, spreadsheet_id):
     """Fill playlist rows with UUIDs for exact artist+title matches.
 
+    Column C stores comma-separated UUIDs when a song has multiple key
+    variants. Existing rows are updated if new variants are found.
+
     Args:
         songs_by_row: dict mapping row -> Song
         playlists_index: list of (sheet_name, title) from read_playlists_index()
@@ -700,7 +703,7 @@ def fill_playlists(songs_by_row, playlists_index, sheets_service, spreadsheet_id
         key = (_normalize_for_matching(song.title), _normalize_for_matching(song.artist or ""))
         songs_by_key[key].append(song)
 
-    total_filled = 0
+    total_updated = 0
 
     for sheet_name, title in playlists_index:
         result = (
@@ -720,10 +723,7 @@ def fill_playlists(songs_by_row, playlists_index, sheets_service, spreadsheet_id
                 d[i] = v
             pl_artist = d[0].strip()
             pl_title = d[1].strip()
-            pl_uuid = d[2].strip()
-
-            if pl_uuid:
-                continue  # already matched
+            pl_uuid_cell = d[2].strip()
 
             key = (_normalize_for_matching(pl_title), _normalize_for_matching(pl_artist))
             found = songs_by_key.get(key, [])
@@ -731,22 +731,38 @@ def fill_playlists(songs_by_row, playlists_index, sheets_service, spreadsheet_id
             if not found:
                 continue
 
+            # Build the full set of UUIDs that should be in this row
+            all_uuids = [s.uuid for s in found]
+            existing_uuids = set(
+                u.strip() for u in pl_uuid_cell.split(",") if u.strip()
+            ) if pl_uuid_cell else set()
+
+            if set(all_uuids) == existing_uuids:
+                continue  # already up to date
+
+            new_uuid_str = ",".join(all_uuids)
             song = found[0]
             updates.append({
                 "range": f"{sheet_name}!C{row_idx + 1}:E{row_idx + 1}",
-                "values": [[song.uuid, song.artist, song.title]],
+                "values": [[new_uuid_str, song.artist, song.title]],
             })
-            print(f"  {title} row {row_idx + 1}: {pl_artist} - {pl_title} -> [{song.uuid}]")
+
+            if not existing_uuids:
+                label = "new"
+            else:
+                added = set(all_uuids) - existing_uuids
+                label = f"+{len(added)} variant(s)"
+            print(f"  {title} row {row_idx + 1}: {pl_artist} - {pl_title} [{label}] -> {new_uuid_str}")
 
         if updates:
             sheets_service.spreadsheets().values().batchUpdate(
                 spreadsheetId=spreadsheet_id,
                 body={"valueInputOption": "RAW", "data": updates},
             ).execute()
-            total_filled += len(updates)
+            total_updated += len(updates)
             print(f"  -> Updated {len(updates)} row(s) in {title}\n")
 
-    if total_filled == 0:
-        print("No exact matches to fill.")
+    if total_updated == 0:
+        print("No playlist updates needed.")
     else:
-        print(f"\nTotal: filled {total_filled} playlist row(s).")
+        print(f"\nTotal: updated {total_updated} playlist row(s).")
