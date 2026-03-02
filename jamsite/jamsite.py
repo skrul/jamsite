@@ -1,7 +1,7 @@
 import os
 import unicodedata
 from . import google_api
-from jamsite.song import Song, compute_slugs
+from jamsite.song import Song, compute_slugs, normalize_quotes
 import re
 import argparse
 import jinja2
@@ -243,9 +243,9 @@ def sync_to_spreadsheet(
     values = [
         [
             s.uuid,
-            s.artist,
+            normalize_quotes(s.artist),
             artist_sort_map.get(s.artist.lower()) if artists_by_name is not None else None,
-            s.title,
+            normalize_quotes(s.title),
             None,
             s.year,
             "",              # key - empty for new songs
@@ -621,6 +621,7 @@ def main():
     group.add_argument("--check", action="store_true")
     group.add_argument("--resolve-duplicates", action="store_true")
     group.add_argument("--fill-metadata", action="store_true")
+    group.add_argument("--fix-quotes", action="store_true")
     group.add_argument("--dropbox-auth", action="store_true")
     group.add_argument("--dev", action="store_true")
     parser.add_argument("--check-years", action="store_true")
@@ -719,6 +720,37 @@ def main():
                 incomplete, songs_dir, sheets_service, JAM_SONGS_SPREADSHEET_ID, "songs",
                 resolve_artist_sort_fn=_resolve,
             )
+    if args.fix_quotes:
+        sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
+        songs_by_row = read_songs_spreadsheet(sheets_service, require_complete=False)
+        updates = []
+        fields_to_fix = [
+            ("title", "title"),
+            ("artist", "artist"),
+            ("artist_sort", "artist_sort"),
+            ("title_sort", "title_sort"),
+        ]
+        for row, song in songs_by_row.items():
+            if song.deleted or song.skip:
+                continue
+            for attr, col in fields_to_fix:
+                old_val = getattr(song, attr)
+                if old_val:
+                    new_val = normalize_quotes(old_val)
+                    if new_val != old_val:
+                        updates.append({
+                            "range": f"songs!{Song.SPREADSHEET_COLUMNS[col]}{row + 1}",
+                            "values": [[new_val]],
+                        })
+                        print(f"  Row {row + 1}: {col} {old_val!r} -> {new_val!r}")
+        if updates:
+            sheets_service.spreadsheets().values().batchUpdate(
+                spreadsheetId=JAM_SONGS_SPREADSHEET_ID,
+                body={"valueInputOption": "RAW", "data": updates},
+            ).execute()
+            print(f"\nFixed {len(updates)} field(s).")
+        else:
+            print("No straight quotes found.")
     if args.dev:
         dev(songs_dir)
     if args.generate:

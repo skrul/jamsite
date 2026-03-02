@@ -4,6 +4,16 @@ from collections import defaultdict
 from unidecode import unidecode
 
 
+def normalize_quotes(s):
+    """Convert straight quotes to typographic (curly) quotes per MusicBrainz style.
+
+    Straight apostrophes (') become right single quotation marks (\u2019).
+    """
+    if not s:
+        return s
+    return s.replace("'", "\u2019")
+
+
 def slugify(text):
     """Convert text to a URL-friendly slug."""
     text = unidecode(text)

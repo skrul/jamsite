@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 from pypdf import PdfWriter, PdfReader
 
-from jamsite.song import Song
+from jamsite.song import Song, normalize_quotes
 from jamsite.store import upload_pdf_to_drive
 
 
@@ -57,6 +57,20 @@ def _tab_from_uuid(uuid):
     return "unknown"
 
 
+_QUOTE_TABLE = str.maketrans({
+    "\u2018": "'",  # left single quotation mark
+    "\u2019": "'",  # right single quotation mark
+    "\u02bc": "'",  # modifier letter apostrophe
+    "\u201c": '"',  # left double quotation mark
+    "\u201d": '"',  # right double quotation mark
+})
+
+
+def _normalize_for_matching(s):
+    """Normalize a string for duplicate matching: lowercase, strip, straighten quotes."""
+    return s.lower().strip().translate(_QUOTE_TABLE)
+
+
 def find_duplicates(songs_by_row):
     """Find duplicate songs (same title+artist, case-insensitive).
 
@@ -72,7 +86,7 @@ def find_duplicates(songs_by_row):
     for row, song in songs_by_row.items():
         if song.deleted or song.skip:
             continue
-        key = (song.title.lower().strip(), (song.artist or "").lower().strip())
+        key = (_normalize_for_matching(song.title), _normalize_for_matching(song.artist or ""))
         tab = _tab_from_uuid(song.uuid)
         seen_titles[key].append((tab, row, song))
 
@@ -606,6 +620,10 @@ def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, s
                 year = vals["year"]
         else:
             year = input("  Year (empty to skip): ").strip()
+
+        # Normalize quotes to curly style
+        artist = normalize_quotes(artist)
+        title = normalize_quotes(title)
 
         # Resolve artist_sort via MusicBrainz
         artist_sort = None
