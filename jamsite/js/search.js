@@ -20,6 +20,7 @@
         });
       }
 
+      that.debounceTimer = null;
       searchInput.addEventListener(
         'input',
         function(e) {
@@ -29,7 +30,8 @@
             return;
           }
           if (!that.activePlaylist) {
-            setTimeout(function() {
+            clearTimeout(that.debounceTimer);
+            that.debounceTimer = setTimeout(function() {
               that.search(e.target.value);
             }, 150);
           }
@@ -115,7 +117,7 @@
           res = filteredSongs;
         }
       } else { // searchbar has text in it
-        var terms = s.toLowerCase().split(/,?\s+/);
+        var terms = s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
 
         // use trie to find matches for all the search terms first
         for (var i = 0; i < terms.length; i++) {

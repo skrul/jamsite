@@ -41,6 +41,7 @@ class SearchIndexer:
         for t in WhitespaceTokenizer().tokenize(s):
             t = unidecode.unidecode(t)
             t = t.lower()
+            t = re.sub(r'[^a-z0-9]', '', t)
             if len(t) > 0:
                 tokens.append(t)
         tokens.append(song.year)
