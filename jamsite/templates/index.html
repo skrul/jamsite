@@ -94,7 +94,7 @@
         .then(() => loadScript('js/menu.js'))
         .then(() => loadScript('js/offline_preferences.js'))
         .then(() => loadScript('js/sync_worker.js'))
-        .then(() => loadScript('https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'))
+        .then(() => loadScript('js/qrcode.min.js'))
         .then(() => loadScript('js/qr_code.js'))
         .then(() => loadScript('js/site.js'))
         .then(() => {
@@ -177,6 +177,7 @@
               },
             },
             sync: syncState,
+            syncWorker: syncWorker,
             get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
             filter: {
               get activeFilters() { return Array.from(f.activeFilters); },

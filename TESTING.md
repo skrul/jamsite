@@ -386,6 +386,7 @@ npx playwright test --reporter=list   # verbose output
 | `side-menu.spec.js` | 4.13 |
 | `responsive.spec.js` | 4.14 |
 | `service-worker.spec.js` | 1.1 |
+| `cache-busting.spec.js` | 2.1, 2.2, 2.3, 2.5 |
 | `broadcast.spec.js` | 3.1 |
 
 ### Notes

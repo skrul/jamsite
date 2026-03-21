@@ -21,6 +21,7 @@ const STATIC_FILES = [
   '/js/menu.js',
   '/js/offline_preferences.js',
   '/js/sync_worker.js',
+  '/js/qrcode.min.js',
   '/js/qr_code.js',
   '/js/site.js'
 ];
