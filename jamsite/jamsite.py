@@ -521,6 +521,14 @@ def serve(songs_dir, broadcast_hub=None):
         daemon_threads = True
         allow_reuse_address = True
 
+        def handle_error(self, request, client_address):
+            # Suppress noisy ConnectionResetError from browser preflight connections
+            import sys
+            exc = sys.exc_info()[1]
+            if isinstance(exc, ConnectionResetError):
+                return
+            super().handle_error(request, client_address)
+
     server = ThreadedTCPServer(("", PORT), handler)
     print("serving at port", PORT)
     print("http://localhost:8000/")
