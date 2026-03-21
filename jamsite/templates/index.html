@@ -274,13 +274,31 @@
                 <rect x="3" y="16" width="18" height="2" fill="#333"/>
               </svg>
             </button>
+            <style>
+              @keyframes reset-fill {
+                from { background-size: 0% 100%; }
+                to { background-size: 100% 100%; }
+              }
+              @keyframes reset-icon { to { fill: #fff; } }
+              .side-menu-toggle.resetting {
+                background-image: linear-gradient(#e74c3c, #e74c3c);
+                background-size: 0% 100%;
+                background-repeat: no-repeat;
+                animation: reset-fill 2s linear 1s forwards;
+              }
+              .side-menu-toggle.resetting svg rect {
+                animation: reset-icon 0s linear 1s forwards;
+              }
+            </style>
             <script>
               // Long-press hamburger (3s) to reset app — works even when JS fails to load
               (function() {
                 var btn = document.getElementById('side-menu-toggle');
                 var timer = null;
                 function start(e) {
+                  btn.classList.add('resetting');
                   timer = setTimeout(function() {
+                    btn.classList.remove('resetting');
                     e.preventDefault();
                     if (confirm('Reset app? This clears all cached data and reloads.')) {
                       Promise.all([
@@ -294,7 +312,7 @@
                     }
                   }, 3000);
                 }
-                function cancel() { clearTimeout(timer); }
+                function cancel() { clearTimeout(timer); btn.classList.remove('resetting'); }
                 btn.addEventListener('touchstart', start, { passive: false });
                 btn.addEventListener('mousedown', start);
                 btn.addEventListener('touchend', cancel);
