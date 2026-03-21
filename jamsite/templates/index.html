@@ -274,54 +274,67 @@
                 <rect x="3" y="16" width="18" height="2" fill="#333"/>
               </svg>
             </button>
-            <style>
-              @keyframes reset-fill {
-                from { background-size: 0% 100%; }
-                to { background-size: 100% 100%; }
-              }
-              @keyframes reset-icon { to { fill: #fff; } }
-              .side-menu-toggle {
-                -webkit-touch-callout: none;
-                user-select: none;
-              }
-              .side-menu-toggle.resetting {
-                background-image: linear-gradient(#e74c3c, #e74c3c);
-                background-size: 0% 100%;
-                background-repeat: no-repeat;
-                animation: reset-fill 2s linear 1s forwards;
-              }
-              .side-menu-toggle.resetting svg rect {
-                animation: reset-icon 0s linear 1s forwards;
-              }
-            </style>
             <script>
-              // Long-press hamburger (3s) to reset app — works even when JS fails to load
+              // Tap body background 5x within 2s to reset app — works even when JS fails to load
               (function() {
-                var btn = document.getElementById('side-menu-toggle');
+                var tapCount = 0;
                 var timer = null;
-                function start(e) {
-                  btn.classList.add('resetting');
-                  timer = setTimeout(function() {
-                    btn.classList.remove('resetting');
-                    if (confirm('Reset app? This clears all cached data and reloads.')) {
-                      Promise.all([
-                        caches.keys().then(function(k) { return Promise.all(k.map(function(n) { return caches.delete(n); })); }).catch(function(){}),
-                        navigator.serviceWorker.getRegistrations().then(function(r) { return Promise.all(r.map(function(reg) { return reg.unregister(); })); }).catch(function(){}),
-                      ]).then(function() {
-                        localStorage.clear();
-                        try { indexedDB.deleteDatabase('jamsite_offline'); } catch(ex) {}
-                        window.location.reload();
-                      });
-                    }
-                  }, 3000);
+                var savedValue = '';
+                var TAPS = 5;
+                var WINDOW = 2000;
+                var SHOW_AT = 3; // show progress starting at this tap
+                var interactive = 'A,BUTTON,INPUT,SELECT,TEXTAREA,LABEL';
+
+                function updateSearch() {
+                  var search = document.getElementById('search');
+                  if (tapCount >= SHOW_AT) {
+                    if (tapCount === SHOW_AT) savedValue = search.value;
+                    var remaining = TAPS - tapCount;
+                    search.value = remaining + ' more tap' + (remaining > 1 ? 's' : '') + ' to reset...';
+                    var pct = Math.round(((tapCount - SHOW_AT + 1) / (TAPS - SHOW_AT + 1)) * 100);
+                    search.style.backgroundImage = 'linear-gradient(#e74c3c, #e74c3c)';
+                    search.style.backgroundSize = pct + '% 100%';
+                    search.style.backgroundRepeat = 'no-repeat';
+                    search.style.color = '#fff';
+                  } else {
+                    search.style.backgroundImage = '';
+                    search.style.backgroundSize = '';
+                    search.style.backgroundRepeat = '';
+                    search.style.color = '';
+                    if (savedValue !== undefined) { search.value = savedValue; savedValue = ''; }
+                  }
                 }
-                function cancel() { clearTimeout(timer); btn.classList.remove('resetting'); }
-                btn.addEventListener('touchstart', start, { passive: false });
-                btn.addEventListener('mousedown', start);
-                btn.addEventListener('touchend', cancel);
-                btn.addEventListener('touchmove', cancel);
-                btn.addEventListener('mouseup', cancel);
-                btn.addEventListener('mouseleave', cancel);
+
+                function resetState() {
+                  tapCount = 0;
+                  updateSearch();
+                }
+
+                document.body.addEventListener('selectstart', function(e) {
+                  if (tapCount >= 2) e.preventDefault();
+                });
+                document.body.addEventListener('click', function(e) {
+                  if (e.target.closest(interactive + ',tr,td,.song-actions,.side-menu,.decade-filter')) return;
+                  tapCount++;
+                  clearTimeout(timer);
+                  if (tapCount < TAPS) {
+                    timer = setTimeout(resetState, WINDOW);
+                    updateSearch();
+                    return;
+                  }
+                  resetState();
+                  if (confirm('Reset app? This clears all cached data and reloads.')) {
+                    try { localStorage.clear(); } catch(ex) {}
+                    try { indexedDB.deleteDatabase('jamsite_offline'); } catch(ex) {}
+                    var p1 = typeof caches !== 'undefined' ? caches.keys().then(function(k) { return Promise.all(k.map(function(n) { return caches.delete(n); })); }).catch(function(){}) : Promise.resolve();
+                    var p2 = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function(r) { return Promise.all(r.map(function(reg) { return reg.unregister(); })); }).catch(function(){}) : Promise.resolve();
+                    Promise.all([p1, p2]).then(function() {
+                      window.location.reload();
+                    }, function() {
+                      window.location.reload();
+                    });
+                  }
+                });
               })();
             </script>
           </div>
