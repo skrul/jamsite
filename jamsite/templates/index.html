@@ -280,6 +280,10 @@
                 to { background-size: 100% 100%; }
               }
               @keyframes reset-icon { to { fill: #fff; } }
+              .side-menu-toggle {
+                -webkit-touch-callout: none;
+                user-select: none;
+              }
               .side-menu-toggle.resetting {
                 background-image: linear-gradient(#e74c3c, #e74c3c);
                 background-size: 0% 100%;
@@ -299,7 +303,6 @@
                   btn.classList.add('resetting');
                   timer = setTimeout(function() {
                     btn.classList.remove('resetting');
-                    e.preventDefault();
                     if (confirm('Reset app? This clears all cached data and reloads.')) {
                       Promise.all([
                         caches.keys().then(function(k) { return Promise.all(k.map(function(n) { return caches.delete(n); })); }).catch(function(){}),
