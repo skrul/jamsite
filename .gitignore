@@ -10,3 +10,6 @@ credentials.json
 dropbox_token.txt
 dropbox_credentials.json
 *.pem
+node_modules/
+test-results/
+playwright-report/
