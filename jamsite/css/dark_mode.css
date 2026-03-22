@@ -1,0 +1,321 @@
+/* Three-way theme toggle widget */
+.theme-toggle {
+  display: inline-flex;
+  background: #e0e0e0;
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.theme-toggle button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 16px;
+  line-height: 1;
+  color: #666;
+  transition: background 0.15s, color 0.15s;
+}
+
+.theme-toggle button:hover {
+  color: #333;
+}
+
+.theme-toggle button.active {
+  background: #fff;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Dark mode toggle widget */
+html[data-theme="dark"] .theme-toggle {
+  background: #444;
+}
+
+html[data-theme="dark"] .theme-toggle button {
+  color: #999;
+}
+
+html[data-theme="dark"] .theme-toggle button:hover {
+  color: #ddd;
+}
+
+html[data-theme="dark"] .theme-toggle button.active {
+  background: #666;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* === Dark mode overrides === */
+
+/* Body / page */
+html[data-theme="dark"] body {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+/* Loading spinner */
+html[data-theme="dark"] .loading {
+  background: #1a1a1a;
+}
+
+html[data-theme="dark"] .loading-spinner {
+  border-color: #333;
+  border-top-color: #888;
+}
+
+/* Navbar */
+html[data-theme="dark"] .navbar {
+  background: #242424;
+}
+
+html[data-theme="dark"] .side-menu-toggle svg rect {
+  fill: #e0e0e0;
+}
+
+/* Search input */
+html[data-theme="dark"] #search {
+  background: #333;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+html[data-theme="dark"] #search::placeholder {
+  color: #888;
+}
+
+html[data-theme="dark"] #search.playlist-active {
+  background-color: #1a3040;
+  color: #7cbde0;
+}
+
+html[data-theme="dark"] .playlist-clear-btn {
+  color: #999;
+}
+
+/* Decade filter */
+html[data-theme="dark"] .decade-filter {
+  background: #242424;
+}
+
+html[data-theme="dark"] .decade-filter button {
+  color: #ccc;
+}
+
+html[data-theme="dark"] .decade-filter button.active {
+  color: #fff;
+}
+
+/* Song table */
+html[data-theme="dark"] #songs tbody tr {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] #songs tbody tr.row-odd {
+  background-color: #222;
+}
+
+html[data-theme="dark"] #songs tr.selected {
+  background-color: #ff5a5f !important;
+  color: #fff;
+}
+
+html[data-theme="dark"] .song-artist-sub-text {
+  color: #999;
+}
+
+html[data-theme="dark"] .song-actions-toggle {
+  color: #999;
+}
+
+html[data-theme="dark"] .song-actions-toggle:hover {
+  color: #e0e0e0;
+}
+
+/* Song actions popover */
+html[data-theme="dark"] .song-actions-popover {
+  background: #333;
+  border-color: #555;
+}
+
+html[data-theme="dark"] .song-actions-item {
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] .song-actions-item:hover {
+  background: #444;
+}
+
+/* Sort popover */
+html[data-theme="dark"] .popover {
+  background: #333;
+  border-color: #555;
+}
+
+html[data-theme="dark"] .popover-link {
+  color: #e0e0e0;
+  border-bottom-color: #555;
+}
+
+html[data-theme="dark"] .popover-link:hover {
+  color: #fff;
+  background: #33C3F0;
+}
+
+/* Side menu */
+html[data-theme="dark"] .side-menu {
+  background: #242424;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.4);
+}
+
+html[data-theme="dark"] .side-menu-header {
+  border-bottom-color: #444;
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] .side-menu-header h4 {
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] .side-menu-footer {
+  border-top-color: #444;
+  background-color: #1e1e1e;
+}
+
+html[data-theme="dark"] .side-menu-link {
+  color: #ccc;
+}
+
+html[data-theme="dark"] .side-menu-link:hover {
+  color: #33C3F0;
+}
+
+/* Playlist section */
+html[data-theme="dark"] .playlist-label {
+  background-color: #333;
+  color: #ccc;
+}
+
+html[data-theme="dark"] .playlist-btn {
+  color: #ccc;
+}
+
+html[data-theme="dark"] .playlist-btn:hover,
+html[data-theme="dark"] .playlist-btn:focus {
+  background: #333 !important;
+  color: #33C3F0;
+}
+
+html[data-theme="dark"] button.playlist-btn.button-primary {
+  color: #e0e0e0 !important;
+}
+
+/* Offline section */
+html[data-theme="dark"] .offline-label {
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] #offline-status-text {
+  color: #999;
+}
+
+/* Reset app button */
+html[data-theme="dark"] .reset-app-button {
+  border-color: #555;
+  color: #999;
+}
+
+html[data-theme="dark"] .reset-app-button:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+html[data-theme="dark"] .reset-app-hint {
+  color: #666;
+}
+
+/* Diagnostics */
+html[data-theme="dark"] .diagnostics-label {
+  color: #777;
+}
+
+html[data-theme="dark"] .diagnostics-list dt {
+  color: #777;
+}
+
+html[data-theme="dark"] .diagnostics-list dd {
+  color: #bbb;
+}
+
+/* PDF viewer dark mode */
+html[data-theme="dark"] .pdf-viewer-container canvas {
+  filter: invert(1);
+}
+
+html[data-theme="dark"] .pdf-viewer-container {
+  background: #1a1a1a;
+}
+
+html[data-theme="dark"] .pdf-viewer-share-popover {
+  background: #333;
+}
+
+html[data-theme="dark"] .pdf-viewer-share-item {
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] .pdf-viewer-share-item:hover {
+  background: #444;
+}
+
+/* QR modal */
+html[data-theme="dark"] .qr-modal-content {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] .qr-modal-close {
+  color: #888;
+}
+
+html[data-theme="dark"] .qr-modal-close:hover {
+  color: #e0e0e0;
+}
+
+html[data-theme="dark"] #qr-song-info p {
+  color: #999;
+}
+
+/* Links */
+html[data-theme="dark"] a {
+  color: #5dade2;
+}
+
+html[data-theme="dark"] a:hover {
+  color: #7ec8e3;
+}
+
+/* Skeleton button overrides */
+html[data-theme="dark"] .button,
+html[data-theme="dark"] button,
+html[data-theme="dark"] input[type="button"] {
+  color: #ccc;
+  border-color: #555;
+}
+
+html[data-theme="dark"] .button:hover,
+html[data-theme="dark"] button:hover {
+  color: #fff;
+  border-color: #888;
+}
+
+html[data-theme="dark"] .button.button-primary,
+html[data-theme="dark"] button.button-primary {
+  background-color: #33C3F0;
+  border-color: #33C3F0;
+  color: #fff;
+}

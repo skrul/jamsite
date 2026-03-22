@@ -15,15 +15,21 @@ class Menu {
     this.progressBarFill = this.offlineProgress.querySelector('.progress-bar-fill');
     this.progressBarText = this.offlineProgress.querySelector('.progress-bar-text');
     
+    // Theme toggle
+    this.themeToggle = document.getElementById('theme-toggle');
+
     // Initialize toggle states
     this.offlineEnabled.checked = window.offlinePreferences.isEnabled();
-    
+
     // Bind event handlers
     this.toggleMenu = this.toggleMenu.bind(this);
     this.handleOfflineToggle = this.handleOfflineToggle.bind(this);
     this.handleSyncNow = this.handleSyncNow.bind(this);
     this.handleWorkerMessage = this.handleWorkerMessage.bind(this);
-    
+
+    // Initialize theme
+    this.initTheme();
+
     // Initialize event listeners
     this.initializeEventListeners();
   }
@@ -34,6 +40,53 @@ class Menu {
     this.document.body.style.overflow = this.sideMenu.classList.contains('open') ? 'hidden' : '';
   }
   
+  initTheme() {
+    this.themePreference = localStorage.getItem('theme-preference') || 'system';
+    this.applyTheme();
+    this.highlightThemeButton();
+
+    // Listen for OS color scheme changes
+    this.darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.darkMediaQuery.addEventListener('change', () => {
+      if (this.themePreference === 'system') {
+        this.applyTheme();
+      }
+    });
+
+    // Click handler on toggle buttons
+    this.themeToggle.addEventListener('click', (e) => {
+      var btn = e.target.closest('button[data-theme]');
+      if (!btn) return;
+      this.themePreference = btn.getAttribute('data-theme');
+      localStorage.setItem('theme-preference', this.themePreference);
+      this.applyTheme();
+      this.highlightThemeButton();
+    });
+  }
+
+  applyTheme() {
+    var isDark;
+    if (this.themePreference === 'dark') {
+      isDark = true;
+    } else if (this.themePreference === 'light') {
+      isDark = false;
+    } else {
+      isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }
+
+  highlightThemeButton() {
+    var buttons = this.themeToggle.querySelectorAll('button[data-theme]');
+    for (var i = 0; i < buttons.length; i++) {
+      if (buttons[i].getAttribute('data-theme') === this.themePreference) {
+        buttons[i].classList.add('active');
+      } else {
+        buttons[i].classList.remove('active');
+      }
+    }
+  }
+
   initializeEventListeners() {
     // Menu toggle events
     this.menuToggle.addEventListener('click', this.toggleMenu);

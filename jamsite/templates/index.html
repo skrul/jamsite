@@ -83,6 +83,7 @@
         .then(() => loadCSS('css/menu.css'))
         .then(() => loadCSS('css/offline.css'))
         .then(() => loadCSS('css/pdf_viewer.css'))
+        .then(() => loadCSS('css/dark_mode.css'))
         // Then load JavaScript files in sequence
         .then(() => loadScript('js/search_data.js'))
         .then(() => loadScript('js/song_table.js'))
@@ -378,6 +379,11 @@
       <div id="side-menu" class="side-menu" data-testid="side-menu">
         <div class="side-menu-header">
           <h4>Jam Songs 🎸</h4>
+          <div class="theme-toggle" id="theme-toggle">
+            <button data-theme="light" title="Light">☀︎</button>
+            <button data-theme="system" title="System">🖥</button>
+            <button data-theme="dark" title="Dark">☾</button>
+          </div>
         </div>
         <div class="side-menu-content">
           <ul class="side-menu-list">
