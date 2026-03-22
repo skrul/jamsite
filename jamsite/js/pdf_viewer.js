@@ -20,9 +20,13 @@
       var uuid = parts ? parts[1] : '';
       var slug = parts ? parts[2] : '';
 
-      // Push state using the direct PDF URL so the browser bar is a usable link
+      // Use replaceState when already viewing a song so back goes to the index, not through every song
       var viewUrl = '/songs/' + encodeURIComponent(uuid) + '/' + encodeURIComponent(slug) + '.pdf';
-      history.pushState({ pdfViewer: true }, '', viewUrl);
+      if (this.isOpen) {
+        history.replaceState({ pdfViewer: true }, '', viewUrl);
+      } else {
+        history.pushState({ pdfViewer: true }, '', viewUrl);
+      }
 
       this._show(pdfUrl, title);
     },
@@ -220,13 +224,13 @@
           slug = params.get('title') || (uuid || '');
         }
       }
-      if (uuid && !this.isOpen) {
-        // Forward navigation to a viewer URL
+      if (uuid) {
+        // Navigation to a viewer URL (open or switch song)
         var pdfUrl = '/songs/' + uuid + '/' + slug + '.pdf';
         var title = this._titleFromUuid(uuid) || slug;
         this._show(pdfUrl, title);
-      } else if (!uuid && this.isOpen) {
-        // Back navigation from a viewer URL
+      } else if (this.isOpen) {
+        // Back navigation to the index
         this._closeDom();
       }
     },

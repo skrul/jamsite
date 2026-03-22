@@ -1,5 +1,5 @@
 // Cache names
-const STATIC_CACHE = 'jamsite-static-v9';
+const STATIC_CACHE = 'jamsite-static-v10';
 const PDF_CACHE = 'pdf-cache';
 
 // Files to cache on install
@@ -38,7 +38,18 @@ self.addEventListener('install', event => {
     caches.open(STATIC_CACHE)
       .then(cache => {
         console.log('Caching static files');
-        return cache.addAll(STATIC_FILES.map(url => new Request(url, { cache: 'reload' })));
+        // Fetch sequentially to avoid overwhelming the dev server with concurrent SSL handshakes
+        let chain = Promise.resolve();
+        STATIC_FILES.forEach(url => {
+          chain = chain.then(() =>
+            fetch(new Request(url, { cache: 'reload' }))
+              .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch ' + url + ': ' + response.status);
+                return cache.put(url, response);
+              })
+          );
+        });
+        return chain;
       })
   );
 });

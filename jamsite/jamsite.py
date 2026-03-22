@@ -531,8 +531,22 @@ def serve(songs_dir, broadcast_hub=None):
             super().handle_error(request, client_address)
 
     server = ThreadedTCPServer(("", PORT), handler)
-    print("serving at port", PORT)
-    print("http://localhost:8000/")
+
+    # Enable HTTPS if mkcert certs are available
+    cert_dir = os.path.expanduser("~/.local/share/mkcert")
+    cert_file = os.path.join(cert_dir, "jamsite.pem")
+    key_file = os.path.join(cert_dir, "jamsite-key.pem")
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        import ssl
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert_file, key_file)
+        server.socket = ctx.wrap_socket(server.socket, server_side=True)
+        print("serving at port", PORT, "(HTTPS)")
+        print(f"https://localhost:{PORT}/")
+    else:
+        print("serving at port", PORT)
+        print(f"http://localhost:{PORT}/")
+
     print(f"Serving songs from: {songs_dir}")
     server.serve_forever()
 

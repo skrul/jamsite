@@ -59,7 +59,7 @@
     },
 
     closeAllPopovers: function() {
-      var popovers = document.querySelectorAll('.song-actions-popover');
+      var popovers = document.querySelectorAll('.song-actions-popover, .pdf-viewer-share-popover');
       popovers.forEach(function(popover) {
         popover.classList.remove('open');
       });
@@ -102,11 +102,29 @@
       this.closeAllPopovers();
       this.broadcast.send(uuid, slug, title, artist);
 
-      // Brief green flash as confirmation to the sender
+      // Brief green flash as confirmation to the sender (index page)
       row.classList.add('broadcast-sent');
       setTimeout(function() {
         row.classList.remove('broadcast-sent');
       }, 1000);
+
+      this.showConfirmation('Shared with room');
+    },
+
+    showConfirmation: function(message) {
+      var el = document.createElement('div');
+      el.className = 'share-confirmation';
+      el.textContent = message;
+      document.body.appendChild(el);
+      requestAnimationFrame(function() {
+        el.classList.add('share-confirmation-visible');
+      });
+      setTimeout(function() {
+        el.classList.remove('share-confirmation-visible');
+        setTimeout(function() {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 300);
+      }, 2000);
     }
   }
 

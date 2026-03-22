@@ -162,6 +162,8 @@ class Menu {
     // Clear local storage
     localStorage.clear();
 
+    // Force fresh resource fetches on next load
+    sessionStorage.setItem('cache-bust', Date.now());
     window.location.reload();
   }
 

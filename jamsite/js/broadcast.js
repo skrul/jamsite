@@ -1,9 +1,14 @@
 (function() {
+  var KEEPALIVE_INTERVAL = 15000; // server sends keepalives every 15s
+  var WATCHDOG_TIMEOUT = 45000;   // reconnect if no event for 3× keepalive
+
   function Broadcast() {
     this.clientId = null;
     this.eventSource = null;
     this.toastContainer = null;
     this.onchange = null;
+    this._watchdogTimer = null;
+    this._lastEventTime = 0;
     this._createToastContainer();
     this._connect();
   }
@@ -11,9 +16,11 @@
   Broadcast.prototype = {
     _connect: function() {
       var that = this;
+      this._lastEventTime = Date.now();
       this.eventSource = new EventSource('/api/events');
 
       this.eventSource.onmessage = function(event) {
+        that._lastEventTime = Date.now();
         var data = JSON.parse(event.data);
 
         if (data.type === 'connected') {
@@ -32,6 +39,23 @@
         that.clientId = null;
         if (that.onchange) that.onchange();
       };
+
+      this._startWatchdog();
+    },
+
+    _startWatchdog: function() {
+      var that = this;
+      if (this._watchdogTimer) clearInterval(this._watchdogTimer);
+      this._watchdogTimer = setInterval(function() {
+        if (Date.now() - that._lastEventTime > WATCHDOG_TIMEOUT) {
+          console.log('Broadcast: no events for ' + (WATCHDOG_TIMEOUT / 1000) + 's, reconnecting');
+          that.eventSource.close();
+          that.clientId = null;
+          if (that.onchange) that.onchange();
+          clearInterval(that._watchdogTimer);
+          that._connect();
+        }
+      }, KEEPALIVE_INTERVAL);
     },
 
     send: function(uuid, slug, title, artist) {
@@ -108,16 +132,11 @@
       requestAnimationFrame(function() {
         toast.classList.add('broadcast-toast-visible');
       });
-
-      toast._dismissTimer = setTimeout(function() {
-        that._dismissToast(toast);
-      }, 10000);
     },
 
     _dismissToast: function(toast) {
       if (toast._dismissed) return;
       toast._dismissed = true;
-      clearTimeout(toast._dismissTimer);
       toast.classList.remove('broadcast-toast-visible');
       toast.classList.add('broadcast-toast-hiding');
       setTimeout(function() {

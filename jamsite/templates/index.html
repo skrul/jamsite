@@ -51,23 +51,31 @@
   
   <!-- Service worker registration and resource loader -->
   <script>
+    // Cache-bust after a reset: sessionStorage flag forces fresh fetches
+    var cacheBust = sessionStorage.getItem('cache-bust');
+    if (cacheBust) sessionStorage.removeItem('cache-bust');
+
+    function bustUrl(url) {
+      return cacheBust ? url + '?v=' + cacheBust : url;
+    }
+
     // Function to load CSS
     function loadCSS(href) {
       return new Promise((resolve, reject) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = href;
+        link.href = bustUrl(href);
         link.onload = resolve;
         link.onerror = reject;
         document.head.appendChild(link);
       });
     }
-    
+
     // Function to load JavaScript
     function loadScript(src) {
       return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src;
+        script.src = bustUrl(src);
         script.onload = resolve;
         script.onerror = reject;
         document.body.appendChild(script);
@@ -260,6 +268,12 @@
                   loadResources();
                   return fulfill();
                 }
+                if (evt.target.state === 'redundant') {
+                  console.warn('Service Worker install failed, loading without SW');
+                  incomingSw.onstatechange = null;
+                  loadResources();
+                  return fulfill();
+                }
               };
             });
           }
@@ -347,6 +361,7 @@
                   if (confirm('Reset app? This clears all cached data and reloads.')) {
                     try { localStorage.clear(); } catch(ex) {}
                     try { indexedDB.deleteDatabase('jamsite_offline'); } catch(ex) {}
+                    try { sessionStorage.setItem('cache-bust', Date.now()); } catch(ex) {}
                     var p1 = typeof caches !== 'undefined' ? caches.keys().then(function(k) { return Promise.all(k.map(function(n) { return caches.delete(n); })); }).catch(function(){}) : Promise.resolve();
                     var p2 = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function(r) { return Promise.all(r.map(function(reg) { return reg.unregister(); })); }).catch(function(){}) : Promise.resolve();
                     Promise.all([p1, p2]).then(function() {

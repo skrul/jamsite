@@ -47,9 +47,9 @@ class BroadcastHub:
 
     def broadcast(self, sender_id, message):
         data = json.dumps(message)
-        sender_entry = self.clients.get(sender_id)
-        sender_subnet = sender_entry[1] if sender_entry else None
         with self.lock:
+            sender_entry = self.clients.get(sender_id)
+            sender_subnet = sender_entry[1] if sender_entry else None
             dead = []
             for cid, (wfile, subnet, ip) in self.clients.items():
                 if cid == sender_id:
@@ -90,7 +90,7 @@ def handle_sse(handler, broadcast_hub):
     try:
         while True:
             time.sleep(15)
-            handler.wfile.write(b": keepalive\n\n")
+            handler.wfile.write(b"data: {\"type\":\"keepalive\"}\n\n")
             handler.wfile.flush()
     except (BrokenPipeError, ConnectionResetError, OSError):
         pass
