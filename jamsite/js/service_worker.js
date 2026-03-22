@@ -23,7 +23,6 @@ const STATIC_FILES = [
   '/js/sync_worker.js',
   '/js/qrcode.min.js',
   '/js/qr_code.js',
-  '/js/viewer_preferences.js',
   '/js/pdf.min.js',
   '/js/pdf.worker.min.js',
   '/js/pdf_viewer.js',
@@ -65,6 +64,15 @@ self.addEventListener('fetch', event => {
   
   // Never cache or intercept API/SSE requests
   if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Navigation to a PDF URL (refresh/direct visit) — serve index.html so the PDF viewer opens
+  if (url.pathname.startsWith('/songs/') && url.pathname.endsWith('.pdf') && event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/').then(cached => cached || caches.match('/index.html'))
+        .then(cached => cached || fetch('/'))
+    );
     return;
   }
 

@@ -463,14 +463,15 @@ class JamSiteHandler(http.server.SimpleHTTPRequestHandler):
             from .broadcast import handle_admin
             handle_admin(self, self.broadcast_hub)
         elif self.path.startswith('/songs/'):
+            from urllib.parse import unquote
             # Support both /songs/{uuid}.pdf and /songs/{uuid}/{slug}.pdf
             parts = self.path[7:].split('/')  # Remove '/songs/'
             if len(parts) == 2:
                 # New format: /songs/{uuid}/{slug}.pdf — use uuid
-                relative_path = parts[0] + '.pdf'
+                relative_path = unquote(parts[0]) + '.pdf'
             else:
                 # Old format: /songs/{uuid}.pdf
-                relative_path = parts[0]
+                relative_path = unquote(parts[0])
             file_path = os.path.join(self.songs_dir, relative_path)
             try:
                 with open(file_path, 'rb') as f:
