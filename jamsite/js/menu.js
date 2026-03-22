@@ -15,13 +15,8 @@ class Menu {
     this.progressBarFill = this.offlineProgress.querySelector('.progress-bar-fill');
     this.progressBarText = this.offlineProgress.querySelector('.progress-bar-text');
     
-    this.viewerEnabled = document.getElementById('viewer-enabled');
-
     // Initialize toggle states
     this.offlineEnabled.checked = window.offlinePreferences.isEnabled();
-    if (this.viewerEnabled && window.viewerPreferences) {
-      this.viewerEnabled.checked = window.viewerPreferences.isEnabled();
-    }
     
     // Bind event handlers
     this.toggleMenu = this.toggleMenu.bind(this);
@@ -54,13 +49,6 @@ class Menu {
       });
     });
     
-    // Viewer toggle event
-    if (this.viewerEnabled) {
-      this.viewerEnabled.addEventListener('change', function() {
-        window.viewerPreferences.setEnabled(this.checked);
-      });
-    }
-
     // Offline toggle event
     this.offlineEnabled.addEventListener('change', this.handleOfflineToggle);
 

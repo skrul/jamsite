@@ -69,7 +69,7 @@
           if (tr) {
             tr.classList.add('selected');
             var url = tr.getAttribute('data-download-link');
-            if (window.viewerPreferences && window.viewerPreferences.isEnabled() && window.pdfViewer) {
+            if (window.pdfViewer) {
               var title = tr.querySelector('.song-title-text').textContent;
               window.pdfViewer.open(url, title);
               that.clearRowSelection();
@@ -109,7 +109,7 @@
           var tr = that._getTr(e);
           if (!mobileAndTabletcheck()) {
             var url = tr.getAttribute('data-view-link');
-            if (window.viewerPreferences && window.viewerPreferences.isEnabled() && window.pdfViewer) {
+            if (window.pdfViewer) {
               var title = tr.querySelector('.song-title-text').textContent;
               window.pdfViewer.open(url, title);
               that.clearRowSelection();

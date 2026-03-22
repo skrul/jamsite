@@ -96,7 +96,7 @@
         var songUrl = data.slug
           ? '/songs/' + data.uuid + '/' + data.slug + '.pdf#toolbar=0'
           : '/songs/' + data.uuid + '.pdf#toolbar=0';
-        if (window.viewerPreferences && window.viewerPreferences.isEnabled() && window.pdfViewer) {
+        if (window.pdfViewer) {
           window.pdfViewer.open(songUrl, data.title);
         } else {
           window.open(songUrl, '_blank');
