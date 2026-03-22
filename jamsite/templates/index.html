@@ -11,6 +11,7 @@
   </script>
   -->
   <meta charset="utf-8">
+  <base href="/">
   <title>Jam Songs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
@@ -94,7 +95,6 @@
         .then(() => loadScript('js/song_actions.js'))
         .then(() => loadScript('js/menu.js'))
         .then(() => loadScript('js/offline_preferences.js'))
-        .then(() => loadScript('js/viewer_preferences.js'))
         .then(() => loadScript('js/pdf.min.js'))
         .then(() => loadScript('js/pdf_viewer.js'))
         .then(() => loadScript('js/sync_worker.js'))
@@ -122,7 +122,7 @@
             });
           }
           const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP, broadcast);
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
           var pdfViewer = new PdfViewer();
           window.pdfViewer = pdfViewer;
           pdfViewer.openFromUrl();
@@ -188,7 +188,6 @@
             syncWorker: syncWorker,
             pdfViewer: pdfViewer,
             get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
-            get viewerEnabled() { return window.viewerPreferences.isEnabled(); },
             filter: {
               get activeFilters() { return Array.from(f.activeFilters); },
               get activePlaylist() { return s.activePlaylist; },
@@ -382,15 +381,6 @@
         </div>
         <div class="side-menu-content">
           <ul class="side-menu-list">
-            <li class="side-menu-item">
-              <div class="offline-toggle">
-                <label class="switch">
-                  <input type="checkbox" id="viewer-enabled" data-testid="viewer-toggle">
-                  <span class="slider round"></span>
-                </label>
-                <span class="offline-label">In-App PDF Viewer</span>
-              </div>
-            </li>
             <li class="side-menu-item offline-section">
               <div class="offline-toggle">
                 <label class="switch">
@@ -452,6 +442,8 @@
               <div class="song-actions-popover">
                 <a href="#" class="song-actions-item share-with-room" data-uuid="{{ song.uuid }}" data-slug="{{ song.slug }}">Share with room</a>
                 <a href="#" class="song-actions-item share-qr" data-uuid="{{ song.uuid }}" data-slug="{{ song.slug }}">Share via QR code</a>
+                <a href="#" class="song-actions-item copy-pdf-link" data-uuid="{{ song.uuid }}" data-slug="{{ song.slug }}">Copy link to PDF</a>
+                <a href="/songs/{{ song.uuid }}/{{ song.slug }}.pdf" download="{{ song.slug }}.pdf" class="song-actions-item">Download PDF</a>
               </div>
             </div>
           </td>

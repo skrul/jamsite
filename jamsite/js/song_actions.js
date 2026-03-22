@@ -33,6 +33,15 @@
         }
       });
 
+      // Handle copy PDF link clicks
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('copy-pdf-link')) {
+          e.preventDefault();
+          e.stopPropagation();
+          that.handleCopyPdfLink(e.target);
+        }
+      });
+
       // Handle share with room clicks
       document.addEventListener('click', function(e) {
         if (e.target.classList.contains('share-with-room')) {
@@ -53,6 +62,17 @@
       var popovers = document.querySelectorAll('.song-actions-popover');
       popovers.forEach(function(popover) {
         popover.classList.remove('open');
+      });
+    },
+
+    handleCopyPdfLink: function(link) {
+      var uuid = link.getAttribute('data-uuid');
+      var slug = link.getAttribute('data-slug');
+      var pdfUrl = window.location.origin + '/songs/' + uuid + '/' + slug + '.pdf';
+      this.closeAllPopovers();
+      navigator.clipboard.writeText(pdfUrl).then(function() {
+        link.textContent = 'Copied!';
+        setTimeout(function() { link.textContent = 'Copy link to PDF'; }, 1500);
       });
     },
 
