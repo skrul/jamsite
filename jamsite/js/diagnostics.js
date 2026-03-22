@@ -1,9 +1,18 @@
 (function() {
-  function Diagnostics(container, indexIdMap) {
+  function Diagnostics(container, indexIdMap, broadcast) {
     var songCount = Array.isArray(indexIdMap) ? indexIdMap.length : Object.keys(indexIdMap).length;
     var currentSiteVersion = '\u2014';
     var currentPageSource = '\u2014';
     var currentCachedCount = '\u2014';
+
+    function broadcastStatus() {
+      if (!broadcast || !broadcast.eventSource) return 'No SSE';
+      var state = broadcast.eventSource.readyState;
+      if (state === 1 && broadcast.clientId) return 'Connected (' + broadcast.clientId + ')';
+      if (state === 1) return 'Connected';
+      if (state === 0) return 'Connecting\u2026';
+      return 'Disconnected';
+    }
 
     function render() {
       var rows = [
@@ -11,6 +20,7 @@
         ['Site version', currentSiteVersion],
         ['Page source', currentPageSource],
         ['Cached PDFs', currentCachedCount],
+        ['Broadcast', broadcastStatus()],
       ];
       var html = '<div class="diagnostics-label">Diagnostics</div><dl class="diagnostics-list">';
       for (var i = 0; i < rows.length; i++) {
@@ -87,6 +97,11 @@
       currentCachedCount = results[1];
       render();
     });
+
+    // Re-render when broadcast state changes
+    if (broadcast) {
+      broadcast.onchange = function() { render(); };
+    }
 
     // Public method to refresh the cached PDF count
     this.refreshCachedCount = function() {

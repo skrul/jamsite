@@ -121,7 +121,7 @@
               type: "START"
             });
           }
-          const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP);
+          const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP, broadcast);
           pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
           var pdfViewer = new PdfViewer();
           window.pdfViewer = pdfViewer;

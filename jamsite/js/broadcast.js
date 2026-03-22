@@ -3,6 +3,7 @@
     this.clientId = null;
     this.eventSource = null;
     this.toastContainer = null;
+    this.onchange = null;
     this._createToastContainer();
     this._connect();
   }
@@ -17,6 +18,7 @@
 
         if (data.type === 'connected') {
           that.clientId = data.clientId;
+          if (that.onchange) that.onchange();
           return;
         }
 
@@ -28,6 +30,7 @@
       this.eventSource.onerror = function() {
         // EventSource auto-reconnects; clientId will be reassigned
         that.clientId = null;
+        if (that.onchange) that.onchange();
       };
     },
 
