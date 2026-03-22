@@ -56,6 +56,7 @@
       // Create overlay DOM
       this.overlay = document.createElement('div');
       this.overlay.className = 'pdf-viewer-overlay';
+      try { if (localStorage.getItem('pdf-viewer-dark') === '1') this.overlay.classList.add('pdf-viewer-dark'); } catch(e) {}
 
       // Header
       var header = document.createElement('div');
@@ -72,8 +73,21 @@
       titleEl.className = 'pdf-viewer-title';
       titleEl.textContent = title || '';
 
+      var darkBtn = document.createElement('button');
+      darkBtn.className = 'pdf-viewer-dark-toggle';
+      var isDark = this.overlay.classList.contains('pdf-viewer-dark');
+      darkBtn.textContent = isDark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+      darkBtn.title = 'Toggle dark mode';
+      var overlay = this.overlay;
+      darkBtn.addEventListener('click', function() {
+        var nowDark = overlay.classList.toggle('pdf-viewer-dark');
+        darkBtn.textContent = nowDark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+        try { localStorage.setItem('pdf-viewer-dark', nowDark ? '1' : '0'); } catch(e) {}
+      });
+
       header.appendChild(backBtn);
       header.appendChild(titleEl);
+      header.appendChild(darkBtn);
 
       // Container for canvases
       this.container = document.createElement('div');

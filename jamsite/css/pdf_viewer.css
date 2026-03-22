@@ -59,6 +59,25 @@
     max-width: 100%;
 }
 
+/* Dark mode */
+.pdf-viewer-dark .pdf-viewer-container canvas {
+    filter: invert(1);
+}
+
+.pdf-viewer-dark .pdf-viewer-container {
+    background: #1a1a1a;
+}
+
+.pdf-viewer-dark-toggle {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+}
+
 /* Loading indicator */
 .pdf-viewer-loading {
     display: flex;
