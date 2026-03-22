@@ -74,13 +74,14 @@
     }
     
     // Function to load all resources
-    function loadResources() {
+    function loadResources(isRetry) {
       // Load CSS files first
       return loadCSS('css/normalize.css')
         .then(() => loadCSS('css/skeleton.css'))
         .then(() => loadCSS('css/custom.css'))
         .then(() => loadCSS('css/menu.css'))
         .then(() => loadCSS('css/offline.css'))
+        .then(() => loadCSS('css/pdf_viewer.css'))
         // Then load JavaScript files in sequence
         .then(() => loadScript('js/search_data.js'))
         .then(() => loadScript('js/song_table.js'))
@@ -93,6 +94,9 @@
         .then(() => loadScript('js/song_actions.js'))
         .then(() => loadScript('js/menu.js'))
         .then(() => loadScript('js/offline_preferences.js'))
+        .then(() => loadScript('js/viewer_preferences.js'))
+        .then(() => loadScript('js/pdf.min.js'))
+        .then(() => loadScript('js/pdf_viewer.js'))
         .then(() => loadScript('js/sync_worker.js'))
         .then(() => loadScript('js/qrcode.min.js'))
         .then(() => loadScript('js/qr_code.js'))
@@ -118,6 +122,10 @@
             });
           }
           const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP);
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
+          var pdfViewer = new PdfViewer();
+          window.pdfViewer = pdfViewer;
+          pdfViewer.openFromUrl();
           const menu = new Menu(document, syncWorker, diagnostics);
 
           // Debug object for testing
@@ -178,7 +186,9 @@
             },
             sync: syncState,
             syncWorker: syncWorker,
+            pdfViewer: pdfViewer,
             get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
+            get viewerEnabled() { return window.viewerPreferences.isEnabled(); },
             filter: {
               get activeFilters() { return Array.from(f.activeFilters); },
               get activePlaylist() { return s.activePlaylist; },
@@ -197,6 +207,14 @@
           }
         })
         .catch(error => {
+          if (swUpdatePending) {
+            console.log('Resource load failed, but SW update reload is pending — suppressing error');
+            return;
+          }
+          if (!isRetry) {
+            console.warn('Resource load failed, retrying once:', error);
+            return loadResources(true);
+          }
           console.error('Failed to load resources:', error);
           // Show error message in loading spinner
           document.querySelector('.loading').innerHTML = `
@@ -213,8 +231,10 @@
       // When a new service worker replaces an existing one, reload to get fresh content.
       // Only reload if we already had a controller — the initial claim should not trigger a reload.
       var hadController = !!navigator.serviceWorker.controller;
+      var swUpdatePending = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (hadController) {
+          swUpdatePending = true;
           window.location.reload();
         }
       });
@@ -362,6 +382,15 @@
         </div>
         <div class="side-menu-content">
           <ul class="side-menu-list">
+            <li class="side-menu-item">
+              <div class="offline-toggle">
+                <label class="switch">
+                  <input type="checkbox" id="viewer-enabled" data-testid="viewer-toggle">
+                  <span class="slider round"></span>
+                </label>
+                <span class="offline-label">In-App PDF Viewer</span>
+              </div>
+            </li>
             <li class="side-menu-item offline-section">
               <div class="offline-toggle">
                 <label class="switch">

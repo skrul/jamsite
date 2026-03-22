@@ -68,7 +68,14 @@
           var tr = that.touchTr;
           if (tr) {
             tr.classList.add('selected');
-            window.location = tr.getAttribute('data-download-link');
+            var url = tr.getAttribute('data-download-link');
+            if (window.viewerPreferences && window.viewerPreferences.isEnabled() && window.pdfViewer) {
+              var title = tr.querySelector('.song-title-text').textContent;
+              window.pdfViewer.open(url, title);
+              that.clearRowSelection();
+            } else {
+              window.location = url;
+            }
           }
           that.touchTr = null;
         },
@@ -101,7 +108,14 @@
           
           var tr = that._getTr(e);
           if (!mobileAndTabletcheck()) {
-            window.open(tr.getAttribute('data-view-link'), '_blank');
+            var url = tr.getAttribute('data-view-link');
+            if (window.viewerPreferences && window.viewerPreferences.isEnabled() && window.pdfViewer) {
+              var title = tr.querySelector('.song-title-text').textContent;
+              window.pdfViewer.open(url, title);
+              that.clearRowSelection();
+            } else {
+              window.open(url, '_blank');
+            }
           }
         },
         false

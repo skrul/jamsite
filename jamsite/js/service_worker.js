@@ -1,5 +1,5 @@
 // Cache names
-const STATIC_CACHE = 'jamsite-static-v7';
+const STATIC_CACHE = 'jamsite-static-v8';
 const PDF_CACHE = 'pdf-cache';
 
 // Files to cache on install
@@ -23,6 +23,11 @@ const STATIC_FILES = [
   '/js/sync_worker.js',
   '/js/qrcode.min.js',
   '/js/qr_code.js',
+  '/js/viewer_preferences.js',
+  '/js/pdf.min.js',
+  '/js/pdf.worker.min.js',
+  '/js/pdf_viewer.js',
+  '/css/pdf_viewer.css',
   '/js/site.js'
 ];
 
