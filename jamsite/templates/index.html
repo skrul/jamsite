@@ -52,7 +52,7 @@
               (function() {
                 var tapCount = 0;
                 var timer = null;
-                var savedValue = '';
+                var savedValue = undefined;
                 var TAPS = 5;
                 var WINDOW = 2000;
                 var SHOW_AT = 3; // show progress starting at this tap
@@ -74,7 +74,7 @@
                     search.style.backgroundSize = '';
                     search.style.backgroundRepeat = '';
                     search.style.color = '';
-                    if (savedValue !== undefined) { search.value = savedValue; savedValue = ''; }
+                    if (savedValue !== undefined) { search.value = savedValue; savedValue = undefined; }
                   }
                 }
 
