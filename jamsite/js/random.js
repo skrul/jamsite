@@ -38,7 +38,9 @@
       songElements = document.getElementById(randomSongUuid).children;
       // put the song name in the search string so it can be cleared
       var searchInput = document.getElementById('search');
-      searchInput.value = songElements[0].textContent;
+      var titleEl = songElements[0].querySelector('.song-title-text');
+      var artistEl = songElements[0].querySelector('.song-artist-sub-text');
+      searchInput.value = titleEl.textContent + ' ' + artistEl.textContent;
       
       // Show the clear button
       var clearButton = document.getElementById('clear-search');
