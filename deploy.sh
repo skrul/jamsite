@@ -12,6 +12,17 @@ for arg in "$@"; do
   esac
 done
 
+echo "=== Checking for unpushed commits ==="
+git fetch origin
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
+if [ "$LOCAL" != "$REMOTE" ]; then
+  echo "ERROR: Local commits have not been pushed to the remote. Run 'git push' first."
+  exit 1
+fi
+echo "OK"
+
+echo ""
 echo "=== Pulling latest code ==="
 ssh $SERVER "cd /root/jamsite && git pull"
 
