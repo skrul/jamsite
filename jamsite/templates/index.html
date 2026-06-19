@@ -239,14 +239,8 @@
     var broadcast = new Broadcast();
     var sa = new SongActions(broadcast);
 
-    var syncWorker = new Worker('js/sync_worker.js');
     if ('serviceWorker' in navigator) {
-      if (window.offlinePreferences.isEnabled()) {
-        navigator.serviceWorker.register('/service_worker.js').catch(err => {
-          console.error('Service Worker registration failed:', err);
-        });
-        syncWorker.postMessage({ type: "START" });
-      } else {
+      if (!window.offlinePreferences.isEnabled()) {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
           regs.forEach(function(reg) { reg.unregister(); });
         });
@@ -258,56 +252,9 @@
     var pdfViewer = new PdfViewer();
     window.pdfViewer = pdfViewer;
     pdfViewer.openFromUrl();
-    var menu = new Menu(document, syncWorker, diagnostics);
-
-    var syncState = { state: 'STOPPED', progress: { done: 0, total: 0 } };
-    syncWorker.addEventListener('message', function(event) {
-      var d = event.data;
-      if (d.type === 'progress') {
-        if (d.status === 'downloading') {
-          syncState.state = 'SYNCING';
-          syncState.progress = { done: d.data.current, total: d.data.total };
-        } else if (d.status === 'downloaded') {
-          syncState.state = 'SYNCED';
-        } else if (d.status === 'cleared') {
-          syncState.state = 'STOPPED';
-          syncState.progress = { done: 0, total: 0 };
-        } else if (d.status === 'error') {
-          syncState.state = 'STOPPED';
-        } else if (d.status === 'checking') {
-          syncState.state = 'SYNCING';
-        }
-      }
-    });
+    var menu = new Menu(document, diagnostics);
 
     window.__app = {
-      sw: {
-        get registered() { return !!navigator.serviceWorker?.controller; },
-        get controller() { return !!navigator.serviceWorker?.controller; },
-        cacheName: null,
-      },
-      cache: {
-        refreshCache: async function() {
-          var names = await caches.keys();
-          window.__app.cache.cacheNames = names;
-          window.__app.cache.staticCount = 0;
-          window.__app.cache.pdfCount = 0;
-          for (var name of names) {
-            var c = await caches.open(name);
-            var keys = await c.keys();
-            if (name.startsWith('jamsite-static-')) {
-              window.__app.cache.staticCount = keys.length;
-              window.__app.sw.cacheName = name;
-            } else if (name === 'pdf-cache') {
-              window.__app.cache.pdfCount = keys.length;
-            }
-          }
-          return window.__app.cache;
-        },
-        cacheNames: [],
-        staticCount: 0,
-        pdfCount: 0,
-      },
       broadcast: {
         get connected() { return broadcast.clientId !== null; },
         get clientId() { return broadcast.clientId; },
@@ -315,10 +262,9 @@
           return broadcast.eventSource ? broadcast.eventSource.readyState : -1;
         },
       },
-      sync: syncState,
-      syncWorker: syncWorker,
       pdfViewer: pdfViewer,
       get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
+      get syncWorker() { return menu.syncWorker; },
       filter: {
         get activeFilters() { return Array.from(f.activeFilters); },
         get activePlaylist() { return s.activePlaylist; },

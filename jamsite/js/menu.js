@@ -1,7 +1,7 @@
 class Menu {
-  constructor(document, syncWorker, diagnostics) {
+  constructor(document, diagnostics) {
     this.document = document;
-    this.syncWorker = syncWorker;
+    this.syncWorker = null;
     this.diagnostics = diagnostics;
     
     // Cache DOM elements
@@ -111,10 +111,20 @@ class Menu {
     // Reset app button
     document.getElementById('reset-app').addEventListener('click', this.handleReset.bind(this));
     
-    // Worker message event
-    this.syncWorker.onmessage = this.handleWorkerMessage;
+    // If offline is already enabled, create the worker now
+    if (window.offlinePreferences.isEnabled()) {
+      this._getOrCreateSyncWorker();
+    }
   }
   
+  _getOrCreateSyncWorker() {
+    if (!this.syncWorker) {
+      this.syncWorker = new Worker('js/sync_worker.js');
+      this.syncWorker.onmessage = this.handleWorkerMessage;
+    }
+    return this.syncWorker;
+  }
+
   handleOfflineToggle() {
     const enabled = this.offlineEnabled.checked;
     window.offlinePreferences.setEnabled(enabled);
@@ -127,16 +137,16 @@ class Menu {
           console.error('Service Worker registration failed:', err);
         });
       }
-      this.syncWorker.postMessage({ type: 'START' });
+      this._getOrCreateSyncWorker().postMessage({ type: 'START' });
     } else {
       this.offlineSyncNow.style.display = 'none';
       this.offlineProgress.style.display = 'none';
-      this.syncWorker.postMessage({ type: 'STOP' });
+      if (this.syncWorker) this.syncWorker.postMessage({ type: 'STOP' });
     }
   }
-  
+
   handleSyncNow() {
-    this.syncWorker.postMessage({ type: 'SYNC' });
+    if (this.syncWorker) this.syncWorker.postMessage({ type: 'SYNC' });
   }
   
   async handleReset() {
