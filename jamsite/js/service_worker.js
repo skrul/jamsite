@@ -1,5 +1,5 @@
 // Cache names
-const STATIC_CACHE = 'jamsite-static-v10';
+const STATIC_CACHE = 'jamsite-static-v11';
 const PDF_CACHE = 'pdf-cache';
 
 // Files to cache on install
