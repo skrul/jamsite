@@ -118,10 +118,15 @@ class Menu {
   handleOfflineToggle() {
     const enabled = this.offlineEnabled.checked;
     window.offlinePreferences.setEnabled(enabled);
-    
+
     if (enabled) {
       // Don't show the sync button immediately - it will be shown when we reach the "downloaded" state
       this.offlineSyncNow.style.display = 'none';
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service_worker.js').catch(err => {
+          console.error('Service Worker registration failed:', err);
+        });
+      }
       this.syncWorker.postMessage({ type: 'START' });
     } else {
       this.offlineSyncNow.style.display = 'none';

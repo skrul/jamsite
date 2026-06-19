@@ -270,9 +270,14 @@
         }
       }).catch(function(error) {
         console.error('PDF.js failed to load document:', error);
-        // Fall back to native PDF navigation
-        that.close();
-        window.open(url, '_blank');
+        if (loadingEl && loadingEl.parentNode) {
+          loadingEl.parentNode.removeChild(loadingEl);
+        }
+        if (!that.isOpen) return;
+        var errorDiv = document.createElement('div');
+        errorDiv.className = 'pdf-viewer-error';
+        errorDiv.innerHTML = '<p>Could not load PDF.</p><a href="' + url + '" target="_blank">Open PDF directly \u2197</a>';
+        container.appendChild(errorDiv);
       });
     },
 

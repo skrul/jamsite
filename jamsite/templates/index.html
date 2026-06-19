@@ -18,287 +18,25 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>">
   
-  <!-- Initial loading styles -->
-  <style>
-    .loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #3498db;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .main-content {
-      display: none;
-    }
-  </style>
-  
-  <!-- Service worker registration and resource loader -->
+  <!-- Apply saved theme preference early to avoid flash of wrong theme -->
   <script>
-    // Cache-bust after a reset: sessionStorage flag forces fresh fetches
-    var cacheBust = sessionStorage.getItem('cache-bust');
-    if (cacheBust) sessionStorage.removeItem('cache-bust');
-
-    function bustUrl(url) {
-      return cacheBust ? url + '?v=' + cacheBust : url;
-    }
-
-    // Function to load CSS
-    function loadCSS(href) {
-      return new Promise((resolve, reject) => {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = bustUrl(href);
-        link.onload = resolve;
-        link.onerror = reject;
-        document.head.appendChild(link);
-      });
-    }
-
-    // Function to load JavaScript
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = bustUrl(src);
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-    }
-    
-    // Function to load all resources
-    function loadResources(isRetry) {
-      // Load CSS files first
-      return loadCSS('css/normalize.css')
-        .then(() => loadCSS('css/skeleton.css'))
-        .then(() => loadCSS('css/custom.css'))
-        .then(() => loadCSS('css/menu.css'))
-        .then(() => loadCSS('css/offline.css'))
-        .then(() => loadCSS('css/pdf_viewer.css'))
-        .then(() => loadCSS('css/dark_mode.css'))
-        // Then load JavaScript files in sequence
-        .then(() => loadScript('js/search_data.js'))
-        .then(() => loadScript('js/song_table.js'))
-        .then(() => loadScript('js/filter.js'))
-        .then(() => loadScript('js/search.js'))
-        .then(() => loadScript('js/playlist.js'))
-        .then(() => loadScript('js/random.js'))
-        .then(() => loadScript('js/diagnostics.js'))
-        .then(() => loadScript('js/broadcast.js'))
-        .then(() => loadScript('js/song_actions.js'))
-        .then(() => loadScript('js/menu.js'))
-        .then(() => loadScript('js/offline_preferences.js'))
-        .then(() => loadScript('js/pdf.min.js'))
-        .then(() => loadScript('js/pdf_viewer.js'))
-        .then(() => loadScript('js/sync_worker.js'))
-        .then(() => loadScript('js/qrcode.min.js'))
-        .then(() => loadScript('js/qr_code.js'))
-        .then(() => loadScript('js/site.js'))
-        .then(() => {
-          // Initialize the application
-          const st = new SongTable(document.getElementById("songs"));
-          st.sort('title');
-          const f = new Filter(document.getElementById("decade-filter"));
-          const s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP, PLAYLISTS_MAP);
-          const pl = new Playlist(document.getElementById('playlist-buttons'), s, document.getElementById('side-menu'));
-          const r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
-          const broadcast = new Broadcast();
-          const sa = new SongActions(broadcast);
-
-          const syncWorker = new Worker('js/sync_worker.js');
-          syncWorker.onmessage = function(event) {
-            console.log(event.data);
-          };
-          if (window.offlinePreferences.isEnabled()) {
-            syncWorker.postMessage({
-              type: "START"
-            });
-          }
-          const diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP, broadcast);
-          pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
-          var pdfViewer = new PdfViewer();
-          window.pdfViewer = pdfViewer;
-          pdfViewer.openFromUrl();
-          const menu = new Menu(document, syncWorker, diagnostics);
-
-          // Debug object for testing
-          var syncState = { state: 'STOPPED', progress: { done: 0, total: 0 } };
-          syncWorker.addEventListener('message', function(event) {
-            var d = event.data;
-            if (d.type === 'progress') {
-              if (d.status === 'downloading') {
-                syncState.state = 'SYNCING';
-                syncState.progress = { done: d.data.current, total: d.data.total };
-              } else if (d.status === 'downloaded') {
-                syncState.state = 'SYNCED';
-              } else if (d.status === 'cleared') {
-                syncState.state = 'STOPPED';
-                syncState.progress = { done: 0, total: 0 };
-              } else if (d.status === 'error') {
-                syncState.state = 'STOPPED';
-              } else if (d.status === 'checking') {
-                syncState.state = 'SYNCING';
-              }
-            }
-          });
-
-          window.__app = {
-            sw: {
-              get registered() { return !!navigator.serviceWorker?.controller; },
-              get controller() { return !!navigator.serviceWorker?.controller; },
-              cacheName: null,
-            },
-            cache: {
-              refreshCache: async function() {
-                var names = await caches.keys();
-                window.__app.cache.cacheNames = names;
-                window.__app.cache.staticCount = 0;
-                window.__app.cache.pdfCount = 0;
-                for (var name of names) {
-                  var c = await caches.open(name);
-                  var keys = await c.keys();
-                  if (name.startsWith('jamsite-static-')) {
-                    window.__app.cache.staticCount = keys.length;
-                    window.__app.sw.cacheName = name;
-                  } else if (name === 'pdf-cache') {
-                    window.__app.cache.pdfCount = keys.length;
-                  }
-                }
-                return window.__app.cache;
-              },
-              cacheNames: [],
-              staticCount: 0,
-              pdfCount: 0,
-            },
-            broadcast: {
-              get connected() { return broadcast.clientId !== null; },
-              get clientId() { return broadcast.clientId; },
-              get readyState() {
-                return broadcast.eventSource ? broadcast.eventSource.readyState : -1;
-              },
-            },
-            sync: syncState,
-            syncWorker: syncWorker,
-            pdfViewer: pdfViewer,
-            get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
-            filter: {
-              get activeFilters() { return Array.from(f.activeFilters); },
-              get activePlaylist() { return s.activePlaylist; },
-              get visibleCount() {
-                return st.rows.filter(function(r) { return r.style.display !== 'none'; }).length;
-              },
-              get totalCount() { return st.rows.length; },
-            },
-          };
-
-          // Show the main content and hide the loading spinner
-          document.querySelector('.main-content').style.display = 'block';
-          document.querySelector('.loading').style.display = 'none';
-          if (!mobileAndTabletcheck()) {
-            document.getElementById('search').focus();
-          }
-        })
-        .catch(error => {
-          if (swUpdatePending) {
-            console.log('Resource load failed, but SW update reload is pending — suppressing error');
-            return;
-          }
-          if (!isRetry) {
-            console.warn('Resource load failed, retrying once:', error);
-            return loadResources(true);
-          }
-          console.error('Failed to load resources:', error);
-          // Show error message in loading spinner
-          document.querySelector('.loading').innerHTML = `
-            <div style="text-align: center; color: #e74c3c;">
-              <h2>Failed to load application</h2>
-              <p>Please refresh the page or try again later.</p>
-            </div>
-          `;
-        });
-    }
-    
-    // Register service worker and wait for it to be active
-    if ('serviceWorker' in navigator) {
-      // When a new service worker replaces an existing one, reload to get fresh content.
-      // Only reload if we already had a controller — the initial claim should not trigger a reload.
-      var hadController = !!navigator.serviceWorker.controller;
-      var swUpdatePending = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hadController) {
-          swUpdatePending = true;
-          window.location.reload();
-        }
-      });
-
-      console.log('Registering service worker');
-      navigator.serviceWorker.register('/service_worker.js')
-        .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
-
-          // Wait for the service worker to be active
-          var incomingSw = registration.installing || registration.waiting;
-          if (registration.active && !incomingSw) {
-            console.log('Service Worker is already active');
-            loadResources();
-          } else {
-            console.log('Waiting for service worker to be active');
-            return new Promise(fulfill => {
-              incomingSw.onstatechange = evt => {
-                console.log('Service Worker state changed to:', evt.target.state);
-                if (evt.target.state === 'activated') {
-                  console.log('Service Worker activated');
-                  incomingSw.onstatechange = null;
-                  loadResources();
-                  return fulfill();
-                }
-                if (evt.target.state === 'redundant') {
-                  console.warn('Service Worker install failed, loading without SW');
-                  incomingSw.onstatechange = null;
-                  loadResources();
-                  return fulfill();
-                }
-              };
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
-          // Load resources anyway if service worker registration fails
-          loadResources();
-        });
-    } else {
-      // If service workers are not supported, load resources immediately
-      console.log('Service Workers not supported');
-      loadResources();
-    }
+    (function() {
+      var pref = localStorage.getItem('theme-preference') || 'system';
+      var isDark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    })();
   </script>
+
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/skeleton.css">
+  <link rel="stylesheet" href="css/custom.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/offline.css">
+  <link rel="stylesheet" href="css/pdf_viewer.css">
+  <link rel="stylesheet" href="css/dark_mode.css">
 </head>
 <body>
-  <!-- Loading spinner -->
-  <div class="loading">
-    <div class="loading-spinner"></div>
-  </div>
-
-  <!-- Main content (hidden initially) -->
-  <div class="main-content">
-    <div class="container">
+  <div class="container">
       <div class="navbar">
         <div class="navbar-top">
           <div class="navbar-menu">
@@ -453,7 +191,7 @@
       <table id="songs" data-testid="song-table">
         <tbody>
         {% for song in songs %}
-        <tr id="{{ song.uuid }}" data-download-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0">
+        <tr id="{{ song.uuid }}" class="{% if loop.index is odd %}row-odd{% endif %}" data-download-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0" data-view-link="/songs/{{ song.uuid }}/{{ song.slug }}.pdf#toolbar=0">
           <td class="song-title" data-sort="{{ song.title_sort }}"><span class="song-title-text">{{ song.title }}{% if song.key %} ({{ song.key }}){% endif %}</span><br><span class="song-artist-sub-text">{{ song.artist }}</span></td>
           <td data-sort="{{ song.artist_sort or song.artist }}">{{ song.artist }}</td>
           <td>{{ song.year }}</td>
@@ -473,6 +211,128 @@
         </tbody>
       </table>
     </div>
-  </div>
+
+  <script src="js/search_data.js"></script>
+  <script src="js/song_table.js"></script>
+  <script src="js/filter.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/playlist.js"></script>
+  <script src="js/random.js"></script>
+  <script src="js/diagnostics.js"></script>
+  <script src="js/broadcast.js"></script>
+  <script src="js/song_actions.js"></script>
+  <script src="js/offline_preferences.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/pdf.min.js"></script>
+  <script src="js/pdf_viewer.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/qr_code.js"></script>
+  <script src="js/site.js"></script>
+  <script>
+  (function() {
+    var st = new SongTable(document.getElementById("songs"));
+    st.sort('title');
+    var f = new Filter(document.getElementById("decade-filter"));
+    var s = new Search(document.getElementById("search"), st, f, INDEX_DATA, INDEX_ID_MAP, DECADES_MAP, PLAYLISTS_MAP);
+    var pl = new Playlist(document.getElementById('playlist-buttons'), s, document.getElementById('side-menu'));
+    var r = new Random(document.getElementById("random"), st, s, INDEX_ID_MAP);
+    var broadcast = new Broadcast();
+    var sa = new SongActions(broadcast);
+
+    var syncWorker = new Worker('js/sync_worker.js');
+    if ('serviceWorker' in navigator) {
+      if (window.offlinePreferences.isEnabled()) {
+        navigator.serviceWorker.register('/service_worker.js').catch(err => {
+          console.error('Service Worker registration failed:', err);
+        });
+        syncWorker.postMessage({ type: "START" });
+      } else {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(reg) { reg.unregister(); });
+        });
+      }
+    }
+
+    var diagnostics = new Diagnostics(document.getElementById('diagnostics-section'), INDEX_ID_MAP, broadcast);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
+    var pdfViewer = new PdfViewer();
+    window.pdfViewer = pdfViewer;
+    pdfViewer.openFromUrl();
+    var menu = new Menu(document, syncWorker, diagnostics);
+
+    var syncState = { state: 'STOPPED', progress: { done: 0, total: 0 } };
+    syncWorker.addEventListener('message', function(event) {
+      var d = event.data;
+      if (d.type === 'progress') {
+        if (d.status === 'downloading') {
+          syncState.state = 'SYNCING';
+          syncState.progress = { done: d.data.current, total: d.data.total };
+        } else if (d.status === 'downloaded') {
+          syncState.state = 'SYNCED';
+        } else if (d.status === 'cleared') {
+          syncState.state = 'STOPPED';
+          syncState.progress = { done: 0, total: 0 };
+        } else if (d.status === 'error') {
+          syncState.state = 'STOPPED';
+        } else if (d.status === 'checking') {
+          syncState.state = 'SYNCING';
+        }
+      }
+    });
+
+    window.__app = {
+      sw: {
+        get registered() { return !!navigator.serviceWorker?.controller; },
+        get controller() { return !!navigator.serviceWorker?.controller; },
+        cacheName: null,
+      },
+      cache: {
+        refreshCache: async function() {
+          var names = await caches.keys();
+          window.__app.cache.cacheNames = names;
+          window.__app.cache.staticCount = 0;
+          window.__app.cache.pdfCount = 0;
+          for (var name of names) {
+            var c = await caches.open(name);
+            var keys = await c.keys();
+            if (name.startsWith('jamsite-static-')) {
+              window.__app.cache.staticCount = keys.length;
+              window.__app.sw.cacheName = name;
+            } else if (name === 'pdf-cache') {
+              window.__app.cache.pdfCount = keys.length;
+            }
+          }
+          return window.__app.cache;
+        },
+        cacheNames: [],
+        staticCount: 0,
+        pdfCount: 0,
+      },
+      broadcast: {
+        get connected() { return broadcast.clientId !== null; },
+        get clientId() { return broadcast.clientId; },
+        get readyState() {
+          return broadcast.eventSource ? broadcast.eventSource.readyState : -1;
+        },
+      },
+      sync: syncState,
+      syncWorker: syncWorker,
+      pdfViewer: pdfViewer,
+      get offlineEnabled() { return window.offlinePreferences.isEnabled(); },
+      filter: {
+        get activeFilters() { return Array.from(f.activeFilters); },
+        get activePlaylist() { return s.activePlaylist; },
+        get visibleCount() {
+          return st.rows.filter(function(r) { return r.style.display !== 'none'; }).length;
+        },
+        get totalCount() { return st.rows.length; },
+      },
+    };
+
+    if (!mobileAndTabletcheck()) {
+      document.getElementById('search').focus();
+    }
+  })();
+  </script>
 </body>
 </html>

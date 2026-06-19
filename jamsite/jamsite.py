@@ -350,7 +350,7 @@ def generate(songs, songs_dir, playlists=None):
             if indices:
                 playlists_map[name] = indices
 
-    songs_by_title = sorted(songs, key=lambda s: s.title)
+    songs_by_title = sorted(songs, key=lambda s: s.title_sort or s.title)
     songs_by_title = [s for s in songs_by_title if not s.skip and not s.deleted]
     compute_slugs(songs_by_title)
 
@@ -532,21 +532,7 @@ def serve(songs_dir, broadcast_hub=None):
 
     server = ThreadedTCPServer(("", PORT), handler)
 
-    # Enable HTTPS if mkcert certs are available
-    cert_dir = os.path.expanduser("~/.local/share/mkcert")
-    cert_file = os.path.join(cert_dir, "jamsite.pem")
-    key_file = os.path.join(cert_dir, "jamsite-key.pem")
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        import ssl
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.load_cert_chain(cert_file, key_file)
-        server.socket = ctx.wrap_socket(server.socket, server_side=True)
-        print("serving at port", PORT, "(HTTPS)")
-        print(f"https://localhost:{PORT}/")
-    else:
-        print("serving at port", PORT)
-        print(f"http://localhost:{PORT}/")
-
+    print(f"http://localhost:{PORT}/")
     print(f"Serving songs from: {songs_dir}")
     server.serve_forever()
 
