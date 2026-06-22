@@ -21,7 +21,8 @@
       var slug = parts ? parts[2] : '';
 
       // Use replaceState when already viewing a song so back goes to the index, not through every song
-      var viewUrl = '/songs/' + encodeURIComponent(uuid) + '/' + encodeURIComponent(slug) + '.pdf';
+      // No .pdf extension so nginx serves index.html on refresh instead of the raw PDF
+      var viewUrl = '/songs/' + encodeURIComponent(uuid) + '/' + encodeURIComponent(slug);
       if (this.isOpen) {
         history.replaceState({ pdfViewer: true }, '', viewUrl);
       } else {
@@ -32,24 +33,31 @@
     },
 
     openFromUrl: function() {
-      // Try /songs/<uuid>/<slug>.pdf path format first
-      var pdfMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)\.pdf$/);
       var uuid, slug;
-      if (pdfMatch) {
-        uuid = decodeURIComponent(pdfMatch[1]);
-        slug = decodeURIComponent(pdfMatch[2]);
+      // Current format: /songs/<uuid>/<slug> (no .pdf — nginx serves index.html on refresh)
+      var viewMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)$/);
+      if (viewMatch) {
+        uuid = decodeURIComponent(viewMatch[1]);
+        slug = decodeURIComponent(viewMatch[2]);
       } else {
-        // Fallback: old /song/<uuid>/<slug> path format
-        var pathMatch = window.location.pathname.match(/^\/song\/([^/]+)\/([^/]+)$/);
-        if (pathMatch) {
-          uuid = decodeURIComponent(pathMatch[1]);
-          slug = decodeURIComponent(pathMatch[2]);
+        // Legacy format: /songs/<uuid>/<slug>.pdf
+        var pdfMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)\.pdf$/);
+        if (pdfMatch) {
+          uuid = decodeURIComponent(pdfMatch[1]);
+          slug = decodeURIComponent(pdfMatch[2]);
         } else {
-          // Fallback: old /?view=<uuid>&title=<slug> format
-          var params = new URLSearchParams(window.location.search);
-          uuid = params.get('view');
-          if (!uuid) return;
-          slug = params.get('title') || uuid;
+          // Legacy format: old /song/<uuid>/<slug> path
+          var pathMatch = window.location.pathname.match(/^\/song\/([^/]+)\/([^/]+)$/);
+          if (pathMatch) {
+            uuid = decodeURIComponent(pathMatch[1]);
+            slug = decodeURIComponent(pathMatch[2]);
+          } else {
+            // Legacy format: /?view=<uuid>&title=<slug>
+            var params = new URLSearchParams(window.location.search);
+            uuid = params.get('view');
+            if (!uuid) return;
+            slug = params.get('title') || uuid;
+          }
         }
       }
       var pdfUrl = '/songs/' + uuid + '/' + slug + '.pdf';
@@ -61,7 +69,7 @@
       if (!this.isOpen) return;
       this._closeDom();
       // Fix URL if it still has viewer path or view param (e.g. PDF load error)
-      if (window.location.pathname.match(/^\/songs\/[^/]+\/[^/]+\.pdf$/) || window.location.pathname.match(/^\/song\//) || new URLSearchParams(window.location.search).has('view')) {
+      if (window.location.pathname.match(/^\/songs\/[^/]+\/[^/]+$/) || window.location.pathname.match(/^\/songs\/[^/]+\/[^/]+\.pdf$/) || window.location.pathname.match(/^\/song\//) || new URLSearchParams(window.location.search).has('view')) {
         history.replaceState(null, '', '/');
       }
     },
@@ -207,21 +215,28 @@
     },
 
     _handlePopState: function() {
-      // Check /songs/<uuid>/<slug>.pdf path first, then old formats
-      var pdfMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)\.pdf$/);
       var uuid, slug;
-      if (pdfMatch) {
-        uuid = decodeURIComponent(pdfMatch[1]);
-        slug = decodeURIComponent(pdfMatch[2]);
+      // Current format: /songs/<uuid>/<slug>
+      var viewMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)$/);
+      if (viewMatch) {
+        uuid = decodeURIComponent(viewMatch[1]);
+        slug = decodeURIComponent(viewMatch[2]);
       } else {
-        var pathMatch = window.location.pathname.match(/^\/song\/([^/]+)\/([^/]+)$/);
-        if (pathMatch) {
-          uuid = decodeURIComponent(pathMatch[1]);
-          slug = decodeURIComponent(pathMatch[2]);
+        // Legacy: /songs/<uuid>/<slug>.pdf
+        var pdfMatch = window.location.pathname.match(/^\/songs\/([^/]+)\/([^/]+)\.pdf$/);
+        if (pdfMatch) {
+          uuid = decodeURIComponent(pdfMatch[1]);
+          slug = decodeURIComponent(pdfMatch[2]);
         } else {
-          var params = new URLSearchParams(window.location.search);
-          uuid = params.get('view');
-          slug = params.get('title') || (uuid || '');
+          var pathMatch = window.location.pathname.match(/^\/song\/([^/]+)\/([^/]+)$/);
+          if (pathMatch) {
+            uuid = decodeURIComponent(pathMatch[1]);
+            slug = decodeURIComponent(pathMatch[2]);
+          } else {
+            var params = new URLSearchParams(window.location.search);
+            uuid = params.get('view');
+            slug = params.get('title') || (uuid || '');
+          }
         }
       }
       if (uuid) {
