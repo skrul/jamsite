@@ -255,7 +255,11 @@
       var container = this.container;
 
       var loadingTask = pdfjsLib.getDocument(url);
+      var timeoutId = setTimeout(function() {
+        loadingTask.destroy();
+      }, 15000);
       loadingTask.promise.then(function(pdf) {
+        clearTimeout(timeoutId);
         // Remove loading indicator
         if (loadingEl && loadingEl.parentNode) {
           loadingEl.parentNode.removeChild(loadingEl);
@@ -269,6 +273,7 @@
           that._renderPage(pdf, i, container);
         }
       }).catch(function(error) {
+        clearTimeout(timeoutId);
         console.error('PDF.js failed to load document:', error);
         if (loadingEl && loadingEl.parentNode) {
           loadingEl.parentNode.removeChild(loadingEl);
