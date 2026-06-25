@@ -83,7 +83,11 @@
       backBtn.className = 'pdf-viewer-back';
       backBtn.textContent = '\u2190';
       backBtn.addEventListener('click', function() {
-        history.back();
+        if (history.state && history.state.pdfViewer) {
+          history.back();
+        } else {
+          window.location.href = '/';
+        }
       });
 
       var titleEl = document.createElement('div');
