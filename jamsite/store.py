@@ -52,6 +52,10 @@ def get_songs_from_drive(service, folder_id):
     return songs
 
 
+# Dropbox sync-conflict duplicates and whole-jam packets (e.g. "PHA June 2026")
+DROPBOX_IGNORE_RE = re.compile(r"conflicted copy|^PHA [A-Za-z]+ \d{4}$", re.IGNORECASE)
+
+
 def get_songs_from_dropbox(dbx, path):
     songs = []
     response = dbx.files_list_folder(path)
@@ -59,6 +63,9 @@ def get_songs_from_dropbox(dbx, path):
         for entry in response.entries:
             # Skip folders
             if isinstance(entry, dropbox.files.FolderMetadata):
+                continue
+            if DROPBOX_IGNORE_RE.search(pathlib.Path(entry.name).stem):
+                print("Skipping " + entry.name)
                 continue
             modified = entry.server_modified.replace(tzinfo=datetime.UTC)
             song = Song(
