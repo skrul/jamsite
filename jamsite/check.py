@@ -283,6 +283,27 @@ def _combine_pdfs(pdf_paths):
     return tmp.name
 
 
+def _prompt_keys(entries, numbered=False):
+    """Prompt for a key per entry; returns sheet updates for the keys entered.
+
+    entries is [(tab, row, song), ...], or [(index, (tab, row, song)), ...]
+    when numbered is True.
+    """
+    if not numbered:
+        entries = list(enumerate(entries))
+    updates = []
+    for j, (tab, row, song) in entries:
+        existing = f" [{song.key}]" if song.key else ""
+        key_val = input(f"  Key for {j + 1} (row {row + 1}, {tab}){existing}: ").strip()
+        if key_val:
+            updates.append({
+                "range": f"songs!{Song.SPREADSHEET_COLUMNS['key']}{row + 1}",
+                "values": [[key_val]],
+            })
+            print(f"  → Setting key to {key_val}")
+    return updates
+
+
 def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_id,
                        drive_service=None, folder_id=None):
     """Interactively resolve duplicate songs.
@@ -334,7 +355,7 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
         # Prompt user
         valid_nums = "/".join(str(j + 1) for j in range(len(entries)))
         combine_opt = "/c(ombine)" if drive_service and folder_id else ""
-        choice = input(f"  Keep which? [{valid_nums}/k(eys){combine_opt}/s(kip)/q(uit)] ").strip().lower()
+        choice = input(f"  Keep which? [{valid_nums} (or several, e.g. 1,2)/k(eys){combine_opt}/s(kip)/q(uit)] ").strip().lower()
 
         updates = []
 
@@ -348,16 +369,9 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
             print("  → Skipped")
         elif choice == "k":
             # Assign keys to distinguish arrangements (PDFs stay open)
-            for j, (tab, row, song) in enumerate(entries):
-                existing = f" [{song.key}]" if song.key else ""
-                key_val = input(f"  Key for {j + 1} (row {row + 1}, {tab}){existing}: ").strip()
-                if key_val:
-                    updates.append({
-                        "range": f"songs!{Song.SPREADSHEET_COLUMNS['key']}{row + 1}",
-                        "values": [[key_val]],
-                    })
-                    total_keys_set += 1
-                    print(f"  → Setting key to {key_val}")
+            key_updates = _prompt_keys(entries)
+            updates += key_updates
+            total_keys_set += len(key_updates)
         elif choice == "c":
             if not drive_service or not folder_id:
                 print("  → Combine not available (no Drive service)")
@@ -464,25 +478,32 @@ def resolve_duplicates(duplicate_groups, songs_dir, sheets_service, spreadsheet_
 
                     total_combined += 1
         else:
+            # One or more to keep, e.g. "2" or "2,3"
             try:
-                pick = int(choice)
-                if pick < 1 or pick > len(entries):
-                    print("  → Invalid choice, skipping")
-                    pick = None
+                picks = {int(x) for x in choice.split(",")}
+                if any(p < 1 or p > len(entries) for p in picks):
+                    raise ValueError
             except ValueError:
                 print("  → Invalid choice, skipping")
-                pick = None
+                picks = None
 
             # Mark all others as skipped
-            if pick is not None:
+            if picks is not None:
                 for j, (tab, row, song) in enumerate(entries):
-                    if j + 1 != pick:
+                    if j + 1 not in picks:
                         updates.append({
                             "range": f"songs!{Song.SPREADSHEET_COLUMNS['skip']}{row + 1}",
                             "values": [["x"]],
                         })
                         total_skipped += 1
                         print(f"  → Marking {song.uuid} as skipped")
+
+                # Keeping more than one means they are different keys
+                if len(picks) > 1:
+                    kept = [(j, e) for j, e in enumerate(entries) if j + 1 in picks]
+                    key_updates = _prompt_keys(kept, numbered=True)
+                    updates += key_updates
+                    total_keys_set += len(key_updates)
 
         # Close the opened PDFs in Preview
         if symlink_paths:
@@ -549,6 +570,34 @@ def find_incomplete_songs(sheets_service, spreadsheet_id, sheet):
     return incomplete
 
 
+def _prompt_field(label, current):
+    """Prompt for a field, returning None if the user wants to skip the song."""
+    if current:
+        value = input(f"  {label} [{current}] (- to skip song): ").strip()
+        if not value:
+            return current
+    else:
+        value = input(f"  {label} (empty or - to skip song): ").strip()
+    if value in ("", "-"):
+        return None
+    return value
+
+
+def _skip_song(sheets_service, spreadsheet_id, sheet, row_idx):
+    """Optionally mark a row as skip so it is hidden and not prompted again."""
+    answer = input("  Mark as skip (hidden from site, won't ask again)? [Y/n] ").strip().lower()
+    if answer in ("", "y", "yes"):
+        sheets_service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=f"{sheet}!{Song.SPREADSHEET_COLUMNS['skip']}{row_idx + 1}",
+            valueInputOption="RAW",
+            body={"values": [["x"]]},
+        ).execute()
+        print("  -> Marked as skip")
+    else:
+        print("  -> Skipped for now")
+
+
 def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, sheet,
                    resolve_artist_sort_fn=None):
     """Interactively fill in missing metadata for incomplete songs.
@@ -586,33 +635,15 @@ def fill_metadata(incomplete_songs, songs_dir, sheets_service, spreadsheet_id, s
         else:
             print(f"  (PDF not found: {pdf_path})")
 
-        # Prompt for artist
-        if vals["artist"]:
-            artist = input(f"  Artist [{vals['artist']}]: ").strip()
-            if not artist:
-                artist = vals["artist"]
-        else:
-            artist = input("  Artist (empty to skip song): ").strip()
-            if not artist:
-                print("  -> Skipped")
-                if tmp_path:
-                    _close_preview_docs([tmp_path])
-                    shutil.rmtree(tmp_dir, ignore_errors=True)
-                continue
-
-        # Prompt for title
-        if vals["title"]:
-            title = input(f"  Title [{vals['title']}]: ").strip()
-            if not title:
-                title = vals["title"]
-        else:
-            title = input("  Title (empty to skip song): ").strip()
-            if not title:
-                print("  -> Skipped")
-                if tmp_path:
-                    _close_preview_docs([tmp_path])
-                    shutil.rmtree(tmp_dir, ignore_errors=True)
-                continue
+        # Prompt for artist and title; "-" (or empty with no default) skips the song
+        artist = _prompt_field("Artist", vals["artist"])
+        title = _prompt_field("Title", vals["title"]) if artist else None
+        if not artist or not title:
+            _skip_song(sheets_service, spreadsheet_id, sheet, row_idx)
+            if tmp_path:
+                _close_preview_docs([tmp_path])
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            continue
 
         # Open Google search for year
         query = urllib.parse.quote(f"{artist} {title} year")
