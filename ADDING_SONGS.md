@@ -19,7 +19,7 @@ uv run python songs.py status       # what's new or edited since the last upload
 uv run python songs.py upload-all   # build and upload them
 ```
 
-Transposed versions get the key in the Drive filename, e.g. `Solar Power - Lorde (2021) [C].pdf`.
+Transposed versions get the key in the Drive filename, e.g. `Solar Power - Lorde (2021) [C].pdf`, and sync copies it into the sheet's key column. The original version has no key in its filename, so it shows up in step 5 as a duplicate: use `k`, press Enter to keep the transposed version's key, and type the original's (it's the `key={...}` in the `.tex` file).
 
 ## 2. Sync the sheet
 

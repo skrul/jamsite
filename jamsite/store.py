@@ -28,7 +28,8 @@ def get_songs_from_drive(service, folder_id):
             .execute()
         )
         for file in response.get("files", []):
-            match = re.match(r"(.*) [-‐] (.*) \((.*)\)(?:\s+\[[^\]]+\])?\.pdf", file.get("name"))
+            # "Title - Artist (Year).pdf", with an optional "[Key]" for transposed versions
+            match = re.match(r"(.*) [-‐] (.*) \((.*)\)(?:\s+\[([^\]]+)\])?\.pdf", file.get("name"))
             if match is not None:
                 song = Song(
                     "gd:" + file.get("id"),
@@ -42,6 +43,7 @@ def get_songs_from_drive(service, folder_id):
                     file.get("modifiedTime"),
                     False,
                     False,
+                    key=match.group(4) or "",
                     hash=file.get("sha1Checksum"),
                 )
                 songs.append(song)

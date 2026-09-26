@@ -218,6 +218,16 @@ def sync_to_spreadsheet(
             to_append.append(song)
         else:
             row, existing_song = existing_songs_uuids[song.uuid]
+            if song.key and not existing_song.key:
+                to_update.append(
+                    {
+                        "range": sheet
+                        + "!"
+                        + Song.SPREADSHEET_COLUMNS["key"]
+                        + str(row + 1),
+                        "values": [[song.key]],
+                    }
+                )
             if existing_song.view_link == "":
                 to_update.append(
                     {
@@ -265,7 +275,7 @@ def sync_to_spreadsheet(
             normalize_quotes(s.title),
             None,
             s.year,
-            "",              # key - empty for new songs
+            s.key or "",     # key from a "[Key]" filename suffix, if any
             s.download_link,
             s.view_link,
             s.modified_time,
