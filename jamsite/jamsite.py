@@ -82,6 +82,18 @@ def _prompt_display_name(original_name, mb_name):
     return mb_name
 
 
+def _add_manual_artist(name, artists_by_name, sheets_service):
+    """Prompt for a sort name and record the artist without a MusicBrainz ID."""
+    sort_name = input("  Enter sort name manually (or press Enter to skip): ").strip()
+    if not sort_name:
+        return None
+    artist = Artist(name=name.strip(), mb_id="", mb_artist="", mb_sort=sort_name)
+    artists_by_name[unicodedata.normalize("NFC", name.strip().lower())] = artist
+    if sheets_service:
+        append_artist(sheets_service, JAM_SONGS_SPREADSHEET_ID, artist)
+    return sort_name
+
+
 def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
     """Resolve artist_sort for a new song. Returns the sort name or None.
 
@@ -98,8 +110,7 @@ def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
     results = mb.search_artist(song.artist)
     if not results:
         print("  No MusicBrainz results found.")
-        sort_name = input("  Enter sort name manually (or press Enter to skip): ").strip()
-        return sort_name or None
+        return _add_manual_artist(song.artist, artists_by_name, sheets_service)
 
     top = results[0]
     choice = _prompt_accept_match(top)
@@ -120,8 +131,7 @@ def resolve_artist_sort(song, artists_by_name, mb, sheets_service):
             append_artist(sheets_service, JAM_SONGS_SPREADSHEET_ID, artist)
         return top.sort_name
     elif choice == "n":
-        sort_name = input("  Enter sort name manually (or press Enter to skip): ").strip()
-        return sort_name or None
+        return _add_manual_artist(song.artist, artists_by_name, sheets_service)
     else:
         return None
 
@@ -694,7 +704,7 @@ def main():
         store.download_songs_from_dropbox(dbx, dbx_songs, songs_dir)
     if args.check:
         sheets_service = google_api.auth("sheets", "v4", force_reauth=args.force_google_reauth)
-        songs_by_row = read_songs_spreadsheet(sheets_service)
+        songs_by_row = read_songs_spreadsheet(sheets_service, require_complete=False)
         artists_by_name = read_artists(sheets_service, JAM_SONGS_SPREADSHEET_ID)
 
         recording_lookup = None
