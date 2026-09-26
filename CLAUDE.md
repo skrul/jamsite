@@ -30,6 +30,8 @@ On the dev Mac, songs are stored on a dedicated case-sensitive APFS volume at `/
 ## Downloading new songs
 The download command writes PDFs to `/data/songs/` which is mounted into the container at the same path.
 
+Dropbox .doc/.docx/.rtf/.txt files are converted to PDF with Gotenberg (`jamsite/gotenberg.py`). On the server this is the compose service at `http://gotenberg:3000`. Locally, a temporary `jamsite-gotenberg` container is started on first use (Docker if running, else Apple `container`) and removed on exit. `GOTENBERG_URL` overrides both.
+
 ## Key file paths
 | File | Purpose |
 |------|---------|

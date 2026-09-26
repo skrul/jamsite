@@ -5,6 +5,7 @@ import tempfile
 import urllib.parse
 import dropbox
 from .song import Song
+from . import gotenberg
 import os
 import json
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
@@ -231,8 +232,7 @@ def upload_pdf_to_drive(service, file_path, filename, folder_id):
 
 def convert_to_pdf(input_path, output_path):
     print(f"Converting {input_path} to {output_path}")
-    gotenberg_url = os.getenv("GOTENBERG_URL", "http://gotenberg:3000")
-    with GotenbergClient(gotenberg_url) as client:
+    with GotenbergClient(gotenberg.get_url()) as client:
         with client.libre_office.to_pdf() as route:
             response = route.convert(Path(input_path)).run()
             response.to_file(Path(output_path))
