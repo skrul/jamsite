@@ -13,3 +13,6 @@ dropbox_credentials.json
 node_modules/
 test-results/
 playwright-report/
+/*.png
+.claude/settings.local.json
+.claude/.playwright-mcp/
