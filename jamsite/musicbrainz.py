@@ -8,6 +8,8 @@ import requests
 MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/artist"
 USER_AGENT = "Jamsite/0.1 (https://github.com/skrul/jamsite)"
 RATE_LIMIT_SECONDS = 1.1
+RETRY_STATUSES = {429, 500, 502, 503, 504}
+MAX_RETRIES = 5
 
 CUSTOM_ARTISTS = {
     "gary schoofs": {
@@ -20,6 +22,27 @@ CUSTOM_ARTISTS = {
         "country": "",
     },
 }
+
+
+def get_with_retry(url, params):
+    """GET a MusicBrainz endpoint, backing off on rate limiting and server errors."""
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = requests.get(
+                url, params=params, headers={"User-Agent": USER_AGENT}, timeout=10
+            )
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == MAX_RETRIES:
+                raise
+            delay = 2 ** (attempt + 1)
+        else:
+            if response.status_code not in RETRY_STATUSES or attempt == MAX_RETRIES:
+                response.raise_for_status()
+                return response
+            retry_after = response.headers.get("Retry-After", "")
+            delay = int(retry_after) if retry_after.isdigit() else 2 ** (attempt + 1)
+        print(f"  MusicBrainz unavailable, retrying in {delay}s...")
+        time.sleep(delay)
 
 
 @dataclass
@@ -81,12 +104,9 @@ class MusicBrainzArtistLookup:
 
         # Query MusicBrainz API
         self._rate_limit()
-        response = requests.get(
-            MUSICBRAINZ_API_URL,
-            params={"query": name, "fmt": "json", "limit": 5},
-            headers={"User-Agent": USER_AGENT},
+        response = get_with_retry(
+            MUSICBRAINZ_API_URL, {"query": name, "fmt": "json", "limit": 5}
         )
-        response.raise_for_status()
         data = response.json()
 
         results = []

@@ -10,10 +10,9 @@ import os
 import re
 import time
 
-import requests
+from .musicbrainz import get_with_retry
 
 MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/recording"
-USER_AGENT = "Jamsite/0.1 (https://github.com/skrul/jamsite)"
 RATE_LIMIT_SECONDS = 1.1
 
 
@@ -48,13 +47,9 @@ class RecordingLookup:
         """Execute a MusicBrainz recording search, return earliest release year or None."""
         self._rate_limit()
         try:
-            response = requests.get(
-                MUSICBRAINZ_API_URL,
-                params={"query": query, "fmt": "json", "limit": 5},
-                headers={"User-Agent": USER_AGENT},
-                timeout=10,
+            response = get_with_retry(
+                MUSICBRAINZ_API_URL, {"query": query, "fmt": "json", "limit": 5}
             )
-            response.raise_for_status()
             data = response.json()
         except Exception:
             return None
